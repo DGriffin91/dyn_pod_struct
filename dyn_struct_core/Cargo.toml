@@ -1,0 +1,8 @@
+[package]
+name = "dyn_struct_core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bytemuck = { version = "1.19.0", features = ["derive"] }
+indexmap = "2.6.0"
