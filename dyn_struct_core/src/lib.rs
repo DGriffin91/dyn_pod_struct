@@ -21,6 +21,16 @@ pub struct DynStructLayout {
     pub fields: IndexMap<String, DynField>,
 }
 
+impl DynStructLayout {
+    pub fn new(fields: Vec<(String, DynField)>) -> Self {
+        let mut map = IndexMap::new();
+        for (name, field) in fields {
+            map.insert(name, field);
+        }
+        DynStructLayout { fields: map }
+    }
+}
+
 pub struct DynStruct {
     pub data: Vec<u8>,
     pub layout: Arc<DynStructLayout>,

@@ -26,6 +26,59 @@ unsafe impl Pod for DynInstanceData {}
 fn main() {
     let size = 10_000_000;
 
+    use boomphf::*;
+
+    // sample set of objects
+    let possible_objects = vec![
+        String::from("local_to_world"),
+        String::from("world_to_local"),
+        String::from("previous_local_to_world"),
+        String::from("aabb_min"),
+        String::from("material_index"),
+        String::from("aabb_max"),
+        String::from("bindpose_start"),
+        String::from("index_count"),
+        String::from("first_index"),
+        String::from("vertex_count"),
+        String::from("first_vertex"),
+        String::from("0"),
+        String::from("1"),
+        String::from("2"),
+        String::from("3"),
+        String::from("4"),
+        String::from("5"),
+        String::from("6"),
+        String::from("7"),
+        String::from("8"),
+        String::from("9"),
+    ];
+    let n = possible_objects.len();
+
+    // generate a minimal perfect hash function of these items
+    let phf = Mphf::new(1.7, &possible_objects.clone());
+
+    // Get hash value of all objects
+    let mut hashes = Vec::new();
+    for v in possible_objects {
+        hashes.push(phf.hash(&v));
+    }
+    dbg!(&hashes);
+    hashes.sort();
+
+    // Expected hash output is set of all integers from 0..n
+    let expected_hashes: Vec<u64> = (0..n as u64).collect();
+    assert!(hashes == expected_hashes);
+
+    //if true {
+    //    return;
+    //}
+
+    //-----------------------------------------------
+    //-----------------------------------------------
+    //-----------------------------------------------
+    //-----------------------------------------------
+    //-----------------------------------------------
+
     let start = Instant::now();
     let instances = (0..size)
         .map(|i| {

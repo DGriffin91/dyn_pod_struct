@@ -81,11 +81,14 @@ pub fn dyn_struct_layout_macro(input: TokenStream) -> TokenStream {
         };
 
         field_inits.push(quote! {
-            fields.insert(stringify!(#field_name).into(), #dyn_struct_core::DynField {
-                offset: offset as u32,
-                size: #size_expr as u32,
-                struct_: #struct_layout,
-            });
+            fields.push((
+                stringify!(#field_name).into(),
+                #dyn_struct_core::DynField {
+                    offset: offset as u32,
+                    size: #size_expr as u32,
+                    struct_: #struct_layout,
+                }
+            ));
             offset += #size_expr;
         });
     }
@@ -94,15 +97,13 @@ pub fn dyn_struct_layout_macro(input: TokenStream) -> TokenStream {
         impl #dyn_struct_core::HasDynStructLayout for #struct_name {
             fn dyn_struct_layout() -> std::sync::Arc<#dyn_struct_core::DynStructLayout> {
                 use std::sync::Arc;
-                let mut fields = indexmap::IndexMap::new();
+                let mut fields = Vec::new();
                 let mut offset = 0usize;
 
                 #(#offset_calc)*
                 #(#field_inits)*
 
-                Arc::new(#dyn_struct_core::DynStructLayout {
-                    fields,
-                })
+                Arc::new(#dyn_struct_core::DynStructLayout::new(fields))
             }
         }
     };
