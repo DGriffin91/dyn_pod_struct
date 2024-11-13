@@ -1,33 +1,50 @@
-use std::{borrow::Cow, sync::Arc};
+use std::sync::Arc;
 
+use boomphf::Mphf;
 use bytemuck::{Pod, Zeroable};
-
-use indexmap::IndexMap;
 
 // Looking up by index in IndexMap should be similar perf to indexing into a Vec
 // Looking up by string should be similar perf to HashMap.
 // Consider using a runtime PHF map since this will be immutable after building.
 // https://crates.io/crates/ph ?
 
-#[derive(Clone, Default, Debug, PartialEq)]
+#[derive(Clone, Default, Debug)]
 pub struct DynField {
     pub offset: u32, // In bytes
     pub size: u32,   // In bytes
     pub struct_: Option<Arc<DynStructLayout>>,
 }
 
-#[derive(Clone, Default, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct DynStructLayout {
-    pub fields: IndexMap<String, DynField>,
+    pub phf: Mphf<String>,
+    /// Fields are laid out in phf order for fastest access.
+    /// Use fields_order to get fields in struct order.
+    pub fields: Vec<DynField>,
+    pub field_names: Vec<String>,
 }
 
 impl DynStructLayout {
     pub fn new(fields: Vec<(String, DynField)>) -> Self {
-        let mut map = IndexMap::new();
-        for (name, field) in fields {
-            map.insert(name, field);
+        let names = fields
+            .iter()
+            .map(|(name, _)| name.clone())
+            .collect::<Vec<_>>();
+        let phf = Mphf::new(1.7, &names);
+
+        let mut list = vec![DynField::default(); fields.len()];
+        let mut field_names = vec![String::new(); fields.len()];
+        fields.iter().enumerate().for_each(|(i, (name, field))| {
+            let index = phf.hash(name) as usize;
+            list[index] = field.clone();
+            field_names[i] = name.to_string();
+        });
+
+        DynStructLayout {
+            phf,
+            fields: list,
+            field_names,
         }
-        DynStructLayout { fields: map }
     }
 }
 
@@ -63,7 +80,8 @@ impl DynStruct {
         let mut field = None;
 
         for s in path {
-            field = layout?.fields.get(*s);
+            let index = layout?.phf.try_hash(*s)? as usize;
+            field = Some(&layout?.fields[index]);
             layout = field?.struct_.as_ref();
         }
 

@@ -36,20 +36,18 @@ dependencies = [
 name = "dyn_struct"
 version = "0.1.0"
 dependencies = [
- "boomphf",
  "bytemuck",
  "dyn_struct_core",
  "dyn_struct_derive",
  "glam",
- "indexmap",
 ]
 
 [[package]]
 name = "dyn_struct_core"
 version = "0.1.0"
 dependencies = [
+ "boomphf",
  "bytemuck",
- "indexmap",
 ]
 
 [[package]]
@@ -58,7 +56,6 @@ version = "0.1.0"
 dependencies = [
  "bytemuck",
  "dyn_struct_core",
- "indexmap",
  "proc-macro-crate",
  "proc-macro2",
  "quote",

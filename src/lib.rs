@@ -48,7 +48,7 @@ mod tests {
     #[test]
     fn test_get_simple_field() {
         let layout = MyStruct::dyn_struct_layout();
-        dbg!(&layout);
+
         let data = MyStruct {
             nested: NestedStruct {
                 a: 1,

@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies]
 bytemuck = { version = "1.19.0", features = ["derive"] }
-indexmap = "2.6.0"
+boomphf = { version = "0.6.0", default-features = false }
