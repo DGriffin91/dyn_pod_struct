@@ -17,15 +17,16 @@ pub struct DynField {
 
 #[derive(Clone, Debug)]
 pub struct DynStructLayout {
+    pub name: String,
     pub phf: Mphf<String>,
     /// Fields are laid out in phf order for fastest access.
-    /// Use fields_order to get fields in struct order.
     pub fields: Vec<DynField>,
+    /// Field names in struct order. (The Mphf does not store strings)
     pub field_names: Vec<String>,
 }
 
 impl DynStructLayout {
-    pub fn new(fields: Vec<(String, DynField)>) -> Self {
+    pub fn new(name: &str, fields: Vec<(String, DynField)>) -> Self {
         let names = fields
             .iter()
             .map(|(name, _)| name.clone())
@@ -41,6 +42,7 @@ impl DynStructLayout {
         });
 
         DynStructLayout {
+            name: name.to_string(),
             phf,
             fields: list,
             field_names,

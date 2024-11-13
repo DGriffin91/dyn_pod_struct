@@ -26,6 +26,7 @@ unsafe impl Pod for DynInstanceData {}
 fn main() {
     let size = 10_000_000;
     let layout = DynInstanceData::dyn_struct_layout();
+    dbg!(&layout.name);
     dbg!(&layout.field_names);
 
     let start = Instant::now();
