@@ -81,7 +81,7 @@ pub fn dyn_struct_layout_macro(input: TokenStream) -> TokenStream {
         };
 
         field_inits.push(quote! {
-            fields.insert(stringify!(#field_name).to_string(), #dyn_struct_core::DynField {
+            fields.insert(stringify!(#field_name).into(), #dyn_struct_core::DynField {
                 offset: offset as u32,
                 size: #size_expr as u32,
                 struct_: #struct_layout,
