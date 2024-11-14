@@ -27,7 +27,11 @@ fn main() {
     let size = 30_000_000;
     let layout = DynInstanceData::dyn_struct_layout();
     dbg!(&layout.name);
-    dbg!(&layout.fields.iter().map(|(n, _)| n).collect::<Vec<_>>());
+    dbg!(&layout
+        .fields
+        .iter()
+        .map(|(n, t)| format!("{n}: {:?},", t.ty_))
+        .collect::<Vec<_>>());
 
     let start = Instant::now();
     let instances = (0..size)

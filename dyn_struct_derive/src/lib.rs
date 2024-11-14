@@ -75,9 +75,9 @@ pub fn dyn_struct_layout_macro(input: TokenStream) -> TokenStream {
         });
 
         let struct_layout = if is_basic_type(field_type, &basic_types, &glam_types) {
-            quote! { None }
+            quote! { #dyn_struct_core::get_base_type::<#field_type>() }
         } else {
-            quote! { Some(<#field_type as #dyn_struct_core::HasDynStructLayout>::dyn_struct_layout()) }
+            quote! { #dyn_struct_core::BaseType::Struct(<#field_type as #dyn_struct_core::HasDynStructLayout>::dyn_struct_layout()) }
         };
 
         field_inits.push(quote! {
@@ -86,7 +86,7 @@ pub fn dyn_struct_layout_macro(input: TokenStream) -> TokenStream {
                 #dyn_struct_core::DynField {
                     offset: offset as u32,
                     size: #size_expr as u32,
-                    struct_: #struct_layout,
+                    ty_: #struct_layout,
                 }
             ));
             offset += #size_expr;
