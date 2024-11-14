@@ -61,7 +61,6 @@ pub fn dyn_struct_layout_macro(input: TokenStream) -> TokenStream {
     .collect();
 
     let mut field_inits = Vec::new();
-    let mut offset_calc = Vec::new();
 
     for field in fields {
         let field_name = &field.ident;
@@ -70,17 +69,24 @@ pub fn dyn_struct_layout_macro(input: TokenStream) -> TokenStream {
         let align_expr = quote! { std::mem::align_of::<#field_type>() };
         let size_expr = quote! { std::mem::size_of::<#field_type>() };
 
-        offset_calc.push(quote! {
-            offset = (offset + #align_expr - 1) & !(#align_expr - 1);
-        });
-
         let struct_layout = if is_basic_type(field_type, &basic_types, &glam_types) {
             quote! { #dyn_struct_core::get_base_type::<#field_type>() }
         } else {
-            quote! { #dyn_struct_core::BaseType::Struct(<#field_type as #dyn_struct_core::HasDynStructLayout>::dyn_struct_layout()) }
+            quote! {
+                #dyn_struct_core::BaseType::Struct({
+                    let nested_layout = <#field_type as #dyn_struct_core::HasDynStructLayout>::dyn_struct_layout();
+                    let nested_fields = nested_layout.fields.iter().map(|(name, field)| {
+                        let mut field = field.clone();
+                        field.offset += offset as u32;  // Adjust for parent offset
+                        (name.clone(), field)
+                    }).collect();
+                    Arc::new(#dyn_struct_core::DynStructLayout::new(&nested_layout.name, nested_layout.size, nested_fields))
+                })
+            }
         };
 
         field_inits.push(quote! {
+            offset = (offset + #align_expr - 1) & !(#align_expr - 1);
             fields.push((
                 stringify!(#field_name).into(),
                 #dyn_struct_core::DynField {
@@ -100,7 +106,6 @@ pub fn dyn_struct_layout_macro(input: TokenStream) -> TokenStream {
                 let mut fields = Vec::new();
                 let mut offset = 0usize;
 
-                #(#offset_calc)*
                 #(#field_inits)*
 
                 Arc::new(#dyn_struct_core::DynStructLayout::new(stringify!(#struct_name).into(), offset, fields))

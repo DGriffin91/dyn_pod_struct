@@ -23,8 +23,8 @@ pub struct MyStruct {
 #[repr(C)]
 #[derive(DynLayout, Clone, Copy, Debug, Default, PartialEq, Pod, Zeroable)]
 pub struct MyStruct2 {
-    pub nested: NestedStruct,
     pub p: Vec4,
+    pub nested: NestedStruct,
     pub a1: u32,
     pub a2: u32,
     pub a3: u32,
@@ -82,6 +82,9 @@ mod tests {
         check_eq(&test_dyn, &["c"], 6u32);
 
         let layout = MyStruct2::dyn_struct_layout();
+
+        //dbg!(&layout.fields);
+
         let data = MyStruct2 {
             nested: NestedStruct {
                 a: 1,
