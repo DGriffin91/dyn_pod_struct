@@ -85,7 +85,7 @@ pub fn dyn_struct_layout_macro(input: TokenStream) -> TokenStream {
                 stringify!(#field_name).into(),
                 #dyn_struct_core::DynField {
                     offset: offset as u32,
-                    size: #size_expr as u32,
+                    // size: #size_expr as u32,
                     ty_: #struct_layout,
                 }
             ));
@@ -103,7 +103,7 @@ pub fn dyn_struct_layout_macro(input: TokenStream) -> TokenStream {
                 #(#offset_calc)*
                 #(#field_inits)*
 
-                Arc::new(#dyn_struct_core::DynStructLayout::new(stringify!(#struct_name).into(), fields))
+                Arc::new(#dyn_struct_core::DynStructLayout::new(stringify!(#struct_name).into(), offset, fields))
             }
         }
     };

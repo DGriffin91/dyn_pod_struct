@@ -40,15 +40,46 @@ pub enum BaseType {
     Struct(Arc<DynStructLayout>),
 }
 
-macro_rules! impl_into_base_type {
+pub trait BaseTypeInfo {
+    const SIZE: usize;
+}
+
+macro_rules! impl_base_type_info {
     ($($t:ty => $variant:ident),* $(,)?) => {
         $(
+            impl BaseTypeInfo for $t {
+                const SIZE: usize = std::mem::size_of::<$t>();
+            }
+
             impl IntoBaseType for $t {
+                #[inline(always)]
                 fn into_base_type() -> BaseType {
                     BaseType::$variant
                 }
             }
         )*
+        impl BaseType {
+            #[inline(always)]
+            pub const fn const_size_of(&self) -> Option<usize> {
+                match self {
+                    $(
+                        BaseType::$variant => Some(<$t as BaseTypeInfo>::SIZE),
+                    )*
+                    BaseType::None => Some(0),
+                    BaseType::Struct(_) => None,
+                }
+            }
+            #[inline(always)]
+            pub fn size_of(&self) -> usize {
+                match self {
+                    $(
+                        BaseType::$variant => <$t as BaseTypeInfo>::SIZE,
+                    )*
+                    BaseType::None => 0,
+                    BaseType::Struct(s) => s.size as usize,
+                }
+            }
+        }
     };
 }
 
@@ -56,11 +87,12 @@ pub trait IntoBaseType {
     fn into_base_type() -> BaseType;
 }
 
+#[inline(always)]
 pub fn get_base_type<T: IntoBaseType>() -> BaseType {
     T::into_base_type()
 }
 
-impl_into_base_type!(
+impl_base_type_info!(
     u8 => U8,
     u16 => U16,
     u32 => U32,
@@ -96,7 +128,7 @@ impl_into_base_type!(
 #[derive(Clone, Default, Debug)]
 pub struct DynField {
     pub offset: u32, // In bytes
-    pub size: u32,   // In bytes
+    // Spare 32 bits of padding here, could cache size here. Is faster than checking size of type with .size_of()
     pub ty_: BaseType,
 }
 
@@ -109,10 +141,12 @@ pub struct DynStructLayout {
     // (IndexMap & FxIndexMap seemed much slower for hash retrieval, also tried boomphf and it was also slower for hash retrieval)
     // Most the wasted space here is just the String, the DynField is only 16 bytes.
     pub fields_hash: FxHashMap<String, DynField>,
+    /// Size of this struct in bytes
+    pub size: usize,
 }
 
 impl DynStructLayout {
-    pub fn new(name: &str, fields: Vec<(String, DynField)>) -> Self {
+    pub fn new(name: &str, size: usize, fields: Vec<(String, DynField)>) -> Self {
         let mut field_hash = FxHashMap::default();
         fields.iter().for_each(|(name, field)| {
             field_hash.insert(name.clone(), field.clone());
@@ -121,6 +155,7 @@ impl DynStructLayout {
             name: name.to_string(),
             fields,
             fields_hash: field_hash,
+            size,
         }
     }
 }
@@ -134,7 +169,8 @@ impl DynStruct {
     #[inline(always)]
     pub fn get<T: Pod + Zeroable>(&self, path: &[&str]) -> Option<&T> {
         if let Some(field) = self.get_path::<T>(path) {
-            assert_eq!(size_of::<T>(), field.size as usize);
+            // If this shouldn't be debug, bring back DynField size, field.ty_.size_of() is too slow
+            debug_assert_eq!(size_of::<T>(), field.ty_.size_of() as usize);
             Some(self.get_raw(field.offset as usize))
         } else {
             None
@@ -144,7 +180,8 @@ impl DynStruct {
     #[inline(always)]
     pub fn get_mut<T: Pod + Zeroable>(&mut self, path: &[&str]) -> Option<&mut T> {
         if let Some(field) = self.get_path::<T>(path) {
-            assert_eq!(size_of::<T>(), field.size as usize);
+            // If this shouldn't be debug, bring back DynField size, field.ty_.size_of() is too slow
+            debug_assert_eq!(size_of::<T>(), field.ty_.size_of() as usize);
             Some(self.get_mut_raw(field.offset as usize))
         } else {
             None
@@ -169,7 +206,8 @@ impl DynStruct {
         }
 
         if let Some(field) = field {
-            assert_eq!(size_of::<T>(), field.size as usize);
+            // If this shouldn't be debug, bring back DynField size, field.ty_.size_of() is too slow
+            debug_assert_eq!(size_of::<T>(), field.ty_.size_of() as usize);
             Some(field)
         } else {
             None
