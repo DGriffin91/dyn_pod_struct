@@ -24,10 +24,10 @@ pub struct DynInstanceData {
 unsafe impl Pod for DynInstanceData {}
 
 fn main() {
-    let size = 10_000_000;
+    let size = 30_000_000;
     let layout = DynInstanceData::dyn_struct_layout();
     dbg!(&layout.name);
-    dbg!(&layout.field_names);
+    dbg!(&layout.fields.iter().map(|(n, _)| n).collect::<Vec<_>>());
 
     let start = Instant::now();
     let instances = (0..size)
@@ -60,6 +60,9 @@ fn main() {
         })
         .collect::<Vec<_>>();
     println!("{:.2}\tCreate", start.elapsed().as_secs_f32() * 1000.0);
+
+    //std::thread::sleep(std::time::Duration::from_millis(1000));
+
     let start = Instant::now();
     let sum: u32 = instances
         .iter()
@@ -69,6 +72,7 @@ fn main() {
         "{:.2}\tAccess dyn ({sum})",
         start.elapsed().as_secs_f32() * 1000.0
     );
+    //std::thread::sleep(std::time::Duration::from_millis(1000));
     let offset = instances[0]
         .get_path::<u32>(&["first_index"])
         .unwrap()
