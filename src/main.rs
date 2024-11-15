@@ -53,7 +53,7 @@ fn main() {
                 first_index: i,
                 ..Default::default()
             };
-            DynStruct::from_struct_with_layout(&data, &layout)
+            DynStruct::new(&data, &layout)
         })
         .collect::<Vec<_>>();
     println!("{:.2}\tCreate", start.elapsed().as_secs_f32() * 1000.0);

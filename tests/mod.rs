@@ -55,7 +55,7 @@ mod tests {
             b: 5.0,
             c: 6,
         };
-        let test_dyn = DynStruct::from_struct_with_layout(&data, &layout);
+        let test_dyn = DynStruct::new(&data, &layout);
 
         check_eq(&test_dyn, &["nested", "a"], 1u32);
         check_eq(&test_dyn, &["nested", "b"], 2.0f32);
@@ -93,7 +93,7 @@ mod tests {
             u: uvec4(5, 6, 7, 8),
             i: ivec4(-5, -6, -7, -8),
         };
-        let test_dyn = DynStruct::from_struct_with_layout(&data, &layout);
+        let test_dyn = DynStruct::new(&data, &layout);
 
         check_eq(&test_dyn, &["nested", "a"], 1u32);
         check_eq(&test_dyn, &["nested", "b"], 2.0f32);

@@ -244,17 +244,10 @@ pub struct DynStruct {
 
 impl DynStruct {
     #[inline(always)]
-    /// Generates the layout from T and copies data. Very slow if creating multiple `DynStruct`s with the same layout.
-    pub fn from_struct<T: HasDynStructLayout + Pod>(data: &T) -> Self {
-        DynStruct {
-            data: bytes_of(data).to_vec(),
-            layout: T::dyn_struct_layout(),
-        }
-    }
-
-    #[inline(always)]
-    /// Copies data into new DynStruct using provided layout. Preferred method if creating many `DynStructs` with the same layout.
-    pub fn from_struct_with_layout<T: Pod>(data: &T, layout: &Arc<DynStructLayout>) -> Self {
+    /// Copies data into new DynStruct using provided layout.
+    /// Creating a layout can be slow, prefer creating a layout once and reusing.
+    /// let layout = T::dyn_struct_layout();
+    pub fn new<T: Pod>(data: &T, layout: &Arc<DynStructLayout>) -> Self {
         assert_eq!(size_of::<T>(), layout.size);
         DynStruct {
             data: bytes_of(data).to_vec(),
@@ -319,18 +312,9 @@ impl DynStruct {
     pub fn get_mut_raw<T: Pod + Zeroable>(&mut self, offset: usize) -> &mut T {
         bytemuck::from_bytes_mut(&mut self.data[offset..offset + size_of::<T>()])
     }
-
-    #[inline(always)]
-    pub fn cast<T: Pod + Zeroable>(&self) -> &T {
-        bytemuck::from_bytes(&self.data[..])
-    }
-
-    #[inline(always)]
-    pub fn cast_mut<T: Pod + Zeroable>(&mut self) -> &mut T {
-        bytemuck::from_bytes_mut(&mut self.data[..])
-    }
 }
 
 pub trait HasDynStructLayout {
+    /// Creating a layout can be slow, prefer creating a layout once and reusing.
     fn dyn_struct_layout() -> Arc<DynStructLayout>;
 }
