@@ -13,6 +13,15 @@ mod tests {
 
     #[repr(C)]
     #[derive(DynLayout, Copy, Clone, Default, Zeroable, Debug, PartialEq)]
+    pub struct NestedStruct {
+        pub a: Vec3,
+        pub b: f32,
+        pub c: Vec3,
+        pub d: u32,
+    }
+
+    #[repr(C)]
+    #[derive(DynLayout, Copy, Clone, Default, Zeroable, Debug, PartialEq)]
     pub struct InstanceData {
         pub local_to_world: Mat4,
         pub world_to_local: Mat4,
@@ -21,6 +30,7 @@ mod tests {
         pub material_index: u32,
         pub aabb_max: Vec3,
         pub bindpose_start: u32,
+        pub nested: NestedStruct,
         pub index_count: u32,
         pub first_index: u32,
         pub vertex_count: u32,
@@ -31,6 +41,13 @@ mod tests {
     fn test_get_simple_field() {
         let module = wgsl::parse_str(
             r#"
+                struct NestedStruct {
+                    a: vec3<f32>,
+                    b: f32,
+                    c: vec3<f32>,
+                    d: u32,
+                }
+
                 struct InstanceData {
                     local_to_world: mat4x4<f32>,
                     world_to_local: mat4x4<f32>,
@@ -39,6 +56,7 @@ mod tests {
                     material_index: u32,
                     aabb_max: vec3<f32>,
                     bindpose_start: u32,
+                    nested: NestedStruct,
                     index_count: u32,
                     first_index: u32,
                     vertex_count: u32,

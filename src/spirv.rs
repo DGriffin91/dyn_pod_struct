@@ -16,8 +16,6 @@ impl DynStructLayout {
             .reflect()
             .unwrap();
 
-        let mut fields = Vec::new();
-
         fn find_matching_struct<'a>(
             var: &'a spirq::ty::Type,
             name: &String,
@@ -52,33 +50,46 @@ impl DynStructLayout {
                 }
             }
         }
-
         if let Some(matching_struct) = matching_struct {
-            for member in &matching_struct.members {
-                // TODO detect padding and disallow?
-                let name = member
-                    .name
-                    .clone()
-                    .unwrap_or(format!("param_{}", fields.len()));
-                let offset = member.offset.unwrap() as u32;
-                let dyn_ty = spirq_ty_to_dyn(member);
-                //dbg!(&name, (&u32_offset, &dyn_ty));
-                fields.push((name, DynField { offset, ty: dyn_ty }));
-            }
+            Some(struct_to_layout(matching_struct, 0))
         } else {
-            return None;
+            None
         }
-
-        let mut total_size = 0;
-        if let Some((_, last)) = fields.last() {
-            total_size = last.offset as usize + last.ty.size_of();
-        }
-
-        Some(Arc::new(DynStructLayout::new(&name, total_size, fields)))
     }
 }
 
-pub fn spirq_ty_to_dyn(member: &spirq::ty::StructMember) -> BaseType {
+pub fn struct_to_layout(
+    struct_type: spirq::ty::StructType,
+    parent_offset: u32,
+) -> Arc<DynStructLayout> {
+    let mut fields = Vec::new();
+    for member in &struct_type.members {
+        // TODO detect padding and disallow?
+        let name = member
+            .name
+            .clone()
+            .unwrap_or(format!("param_{}", fields.len()));
+        let offset = member.offset.unwrap() as u32 + parent_offset;
+        let dyn_ty = spirq_ty_to_dyn(member, offset);
+        //dbg!(&name, (&u32_offset, &dyn_ty));
+        fields.push((name, DynField { offset, ty: dyn_ty }));
+    }
+
+    let mut total_size = 0;
+    if let Some((_, last)) = fields.last() {
+        if let Some((_, first)) = fields.first() {
+            total_size = last.offset as usize + last.ty.size_of() - first.offset as usize;
+        }
+    }
+
+    Arc::new(DynStructLayout::new(
+        &struct_type.name.unwrap_or("UnknownStructName".to_string()),
+        total_size,
+        fields,
+    ))
+}
+
+pub fn spirq_ty_to_dyn(member: &spirq::ty::StructMember, parent_offset: u32) -> BaseType {
     let dyn_ty = match &member.ty {
         spirq::ty::Type::Scalar(scalar_type) => match *scalar_type {
             spirq::ty::ScalarType::Void => BaseType::None,
@@ -188,7 +199,9 @@ pub fn spirq_ty_to_dyn(member: &spirq::ty::StructMember) -> BaseType {
             unimplemented!()
         }
         spirq::ty::Type::Array(_array_type) => unimplemented!("{:?}", _array_type),
-        spirq::ty::Type::Struct(_struct_type) => unimplemented!(),
+        spirq::ty::Type::Struct(struct_type) => {
+            BaseType::Struct(struct_to_layout(struct_type.clone(), parent_offset))
+        }
         spirq::ty::Type::AccelStruct(_accel_struct_type) => {
             unimplemented!()
         }

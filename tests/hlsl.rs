@@ -9,6 +9,15 @@ mod tests {
 
     #[repr(C)]
     #[derive(DynLayout, Copy, Clone, Default, Zeroable, Debug, PartialEq)]
+    pub struct NestedStruct {
+        pub a: Vec3,
+        pub b: f32,
+        pub c: Vec3,
+        pub d: u32,
+    }
+
+    #[repr(C)]
+    #[derive(DynLayout, Copy, Clone, Default, Zeroable, Debug, PartialEq)]
     pub struct InstanceData {
         pub local_to_world: Mat4,
         pub world_to_local: Mat4,
@@ -17,6 +26,7 @@ mod tests {
         pub material_index: u32,
         pub aabb_max: Vec3,
         pub bindpose_start: u32,
+        pub nested: NestedStruct,
         pub index_count: u32,
         pub first_index: u32,
         pub vertex_count: u32,
@@ -28,6 +38,14 @@ mod tests {
         let spirv = compile_hlsl(
             "fragment.hlsl",
             r#"
+                struct NestedStruct
+                {
+                    float3 a;                  
+                    float b;              
+                    float3 c;                  
+                    uint d;    
+                };
+
                 struct InstanceData
                 {
                     float4x4 local_to_world;         
@@ -36,7 +54,8 @@ mod tests {
                     float3 aabb_min;                  
                     uint material_index;              
                     float3 aabb_max;                  
-                    uint bindpose_start;              
+                    uint bindpose_start;  
+                    NestedStruct nested;   
                     uint index_count;
                     uint first_index;
                     uint vertex_count;
