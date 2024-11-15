@@ -1,109 +1,259 @@
-use bytemuck::{Pod, Zeroable};
+use std::sync::Arc;
 
-use dyn_struct_derive::DynLayout;
-use glam::Vec4;
+use bytemuck::{bytes_of, Pod, Zeroable};
+use fxhash::FxHashMap;
 
-#[repr(C)]
-#[derive(DynLayout, Clone, Copy, Debug, Default, PartialEq, Pod, Zeroable)]
-pub struct NestedStruct {
-    pub a: u32,
-    pub b: f32,
-    pub c: u32,
-    pub d: u32,
+#[derive(Clone, Default, Debug)]
+pub enum BaseType {
+    #[default]
+    None,
+    U8,
+    U16,
+    U32,
+    U64,
+    U128,
+    I8,
+    I16,
+    I32,
+    I64,
+    I128,
+    F32,
+    F64,
+    Bool,
+    Vec2,
+    Vec3,
+    Vec4,
+    Mat2,
+    Mat3,
+    Mat4,
+    Quat,
+    Affine2,
+    Affine3A,
+    DVec2,
+    DVec3,
+    DVec4,
+    DMat2,
+    DMat3,
+    DMat4,
+    DAffine2,
+    DAffine3,
+    Struct(Arc<DynStructLayout>),
 }
 
-#[repr(C)]
-#[derive(DynLayout, Clone, Copy, Debug, Default, PartialEq, Pod, Zeroable)]
-pub struct MyStruct {
-    pub nested: NestedStruct,
-    pub b: f32,
-    pub c: u32,
+pub trait BaseTypeInfo {
+    const SIZE: usize;
 }
 
-#[repr(C)]
-#[derive(DynLayout, Clone, Copy, Debug, Default, PartialEq, Pod, Zeroable)]
-pub struct MyStruct2 {
-    pub p: Vec4,
-    pub nested: NestedStruct,
-    pub a1: u32,
-    pub a2: u32,
-    pub a3: u32,
-    pub a4: u32,
+macro_rules! impl_base_type_info {
+    ($($t:ty => $variant:ident),* $(,)?) => {
+        $(
+            impl BaseTypeInfo for $t {
+                const SIZE: usize = std::mem::size_of::<$t>();
+            }
+
+            impl IntoBaseType for $t {
+                #[inline(always)]
+                fn into_base_type() -> BaseType {
+                    BaseType::$variant
+                }
+            }
+        )*
+        impl BaseType {
+            #[inline(always)]
+            pub const fn const_size_of(&self) -> Option<usize> {
+                match self {
+                    $(
+                        BaseType::$variant => Some(<$t as BaseTypeInfo>::SIZE),
+                    )*
+                    BaseType::None => Some(0),
+                    BaseType::Struct(_) => None,
+                }
+            }
+            #[inline(always)]
+            pub fn size_of(&self) -> usize {
+                match self {
+                    $(
+                        BaseType::$variant => <$t as BaseTypeInfo>::SIZE,
+                    )*
+                    BaseType::None => 0,
+                    BaseType::Struct(s) => s.size as usize,
+                }
+            }
+        }
+    };
 }
 
-#[cfg(test)]
-mod tests {
+pub trait IntoBaseType {
+    fn into_base_type() -> BaseType;
+}
 
-    use super::*;
+#[inline(always)]
+pub fn get_base_type<T: IntoBaseType>() -> BaseType {
+    T::into_base_type()
+}
 
-    use dyn_struct_core::{DynStruct, HasDynStructLayout};
-    use glam::vec4;
-    use std::fmt::Debug;
+impl_base_type_info!(
+    u8 => U8,
+    u16 => U16,
+    u32 => U32,
+    u64 => U64,
+    u128 => U128,
+    i8 => I8,
+    i16 => I16,
+    i32 => I32,
+    i64 => I64,
+    i128 => I128,
+    f32 => F32,
+    f64 => F64,
+    bool => Bool,
+    glam::Vec2 => Vec2,
+    glam::Vec3 => Vec3,
+    glam::Vec4 => Vec4,
+    glam::Mat2 => Mat2,
+    glam::Mat3 => Mat3,
+    glam::Mat4 => Mat4,
+    glam::Quat => Quat,
+    glam::Affine2 => Affine2,
+    glam::Affine3A => Affine3A,
+    glam::DVec2 => DVec2,
+    glam::DVec3 => DVec3,
+    glam::DVec4 => DVec4,
+    glam::DMat2 => DMat2,
+    glam::DMat3 => DMat3,
+    glam::DMat4 => DMat4,
+    glam::DAffine2 => DAffine2,
+    glam::DAffine3 => DAffine3
+);
 
-    fn check_eq<T: PartialEq<T> + Pod + Debug>(test_dyn: &DynStruct, path: &[&str], v: T) {
-        assert_eq!(*test_dyn.get::<T>(path).unwrap(), v);
+#[derive(Clone, Default, Debug)]
+pub struct DynField {
+    pub offset: u32, // In bytes
+    // Spare 32 bits of padding here, could cache size here. Is faster than checking size of type with .size_of()
+    pub ty_: BaseType,
+}
+
+#[derive(Clone, Debug)]
+pub struct DynStructLayout {
+    pub name: String,
+    // Fields in struct order
+    pub fields: Vec<(String, DynField)>,
+    /// HashMap for fast hash lookup.
+    // (IndexMap & FxIndexMap seemed much slower for hash retrieval, also tried boomphf and it was also slower for hash retrieval)
+    // Most the wasted space here is just the String, the DynField is only 16 bytes.
+    pub fields_hash: FxHashMap<String, DynField>,
+    /// Size of this struct in bytes
+    pub size: usize,
+}
+
+impl DynStructLayout {
+    pub fn new(name: &str, size: usize, fields: Vec<(String, DynField)>) -> Self {
+        let mut field_hash = FxHashMap::default();
+        fields.iter().for_each(|(name, field)| {
+            field_hash.insert(name.clone(), field.clone());
+        });
+        DynStructLayout {
+            name: name.to_string(),
+            fields,
+            fields_hash: field_hash,
+            size,
+        }
+    }
+}
+
+pub struct DynStruct {
+    pub data: Vec<u8>,
+    pub layout: Arc<DynStructLayout>,
+}
+
+impl DynStruct {
+    #[inline(always)]
+    /// Generates the layout from T and copies data. Very slow if creating multiple `DynStruct`s with the same layout.
+    pub fn from_struct<T: HasDynStructLayout + Pod>(data: &T) -> Self {
+        DynStruct {
+            data: bytes_of(data).to_vec(),
+            layout: T::dyn_struct_layout(),
+        }
     }
 
-    #[test]
-    fn test_get_simple_field() {
-        let layout = MyStruct::dyn_struct_layout();
-
-        let data = MyStruct {
-            nested: NestedStruct {
-                a: 1,
-                b: 2.0,
-                c: 3,
-                d: 4,
-            },
-            b: 5.0,
-            c: 6,
-        };
-        let test_dyn = DynStruct::from_struct_with_layout(&data, &layout);
-
-        check_eq(&test_dyn, &["nested", "a"], 1u32);
-        check_eq(&test_dyn, &["nested", "b"], 2.0f32);
-        check_eq(&test_dyn, &["nested", "c"], 3u32);
-        check_eq(&test_dyn, &["nested", "d"], 4u32);
-        check_eq(
-            &test_dyn,
-            &["nested"],
-            NestedStruct {
-                a: 1,
-                b: 2.0,
-                c: 3,
-                d: 4,
-            },
-        );
-        check_eq(&test_dyn, &["b"], 5.0f32);
-        check_eq(&test_dyn, &["c"], 6u32);
-
-        let layout = MyStruct2::dyn_struct_layout();
-
-        //dbg!(&layout.fields);
-
-        let data = MyStruct2 {
-            nested: NestedStruct {
-                a: 1,
-                b: 2.0,
-                c: 3,
-                d: 4,
-            },
-            p: vec4(1.0, 2.0, 3.0, 4.0),
-            a1: 1,
-            a2: 2,
-            a3: 3,
-            a4: 4,
-        };
-        let test_dyn = DynStruct::from_struct_with_layout(&data, &layout);
-
-        check_eq(&test_dyn, &["nested", "a"], 1u32);
-        check_eq(&test_dyn, &["nested", "b"], 2.0f32);
-        check_eq(&test_dyn, &["nested", "c"], 3u32);
-        check_eq(&test_dyn, &["nested", "d"], 4u32);
-        check_eq(&test_dyn, &["p"], vec4(1.0, 2.0, 3.0, 4.0));
-        check_eq(&test_dyn, &["a1"], 1u32);
-        check_eq(&test_dyn, &["a2"], 2u32);
-        check_eq(&test_dyn, &["a3"], 3u32);
-        check_eq(&test_dyn, &["a4"], 4u32);
+    #[inline(always)]
+    /// Copies data into new DynStruct using provided layout. Preferred method if creating many `DynStructs` with the same layout.
+    pub fn from_struct_with_layout<T: Pod>(data: &T, layout: &Arc<DynStructLayout>) -> Self {
+        assert_eq!(size_of::<T>(), layout.size);
+        DynStruct {
+            data: bytes_of(data).to_vec(),
+            layout: layout.clone(),
+        }
     }
+
+    #[inline(always)]
+    pub fn get<T: Pod + Zeroable>(&self, path: &[&str]) -> Option<&T> {
+        if let Some(field) = self.get_path::<T>(path) {
+            // If this shouldn't be debug, bring back DynField size, field.ty_.size_of() is too slow
+            debug_assert_eq!(size_of::<T>(), field.ty_.size_of() as usize);
+            Some(self.get_raw(field.offset as usize))
+        } else {
+            None
+        }
+    }
+
+    #[inline(always)]
+    pub fn get_mut<T: Pod + Zeroable>(&mut self, path: &[&str]) -> Option<&mut T> {
+        if let Some(field) = self.get_path::<T>(path) {
+            // If this shouldn't be debug, bring back DynField size, field.ty_.size_of() is too slow
+            debug_assert_eq!(size_of::<T>(), field.ty_.size_of() as usize);
+            Some(self.get_mut_raw(field.offset as usize))
+        } else {
+            None
+        }
+    }
+
+    #[inline(always)]
+    pub fn get_path<T: Pod + Zeroable>(&self, path: &[&str]) -> Option<&DynField> {
+        let mut layout = &self.layout;
+        let mut field = None;
+
+        let last = path.len() - 1;
+
+        for (i, s) in path.iter().enumerate() {
+            field = layout.fields_hash.get(*s);
+            if let BaseType::Struct(field_layout) = &field?.ty_ {
+                layout = &field_layout;
+            } else if last != i {
+                // If this isn't the end of the path, a struct is expected.
+                return None;
+            }
+        }
+
+        if let Some(field) = field {
+            // If this shouldn't be debug, bring back DynField size, field.ty_.size_of() is too slow
+            debug_assert_eq!(size_of::<T>(), field.ty_.size_of() as usize);
+            Some(field)
+        } else {
+            None
+        }
+    }
+
+    #[inline(always)]
+    pub fn get_raw<T: Pod + Zeroable>(&self, offset: usize) -> &T {
+        bytemuck::from_bytes(&self.data[offset..offset + size_of::<T>()])
+    }
+
+    #[inline(always)]
+    pub fn get_mut_raw<T: Pod + Zeroable>(&mut self, offset: usize) -> &mut T {
+        bytemuck::from_bytes_mut(&mut self.data[offset..offset + size_of::<T>()])
+    }
+
+    #[inline(always)]
+    pub fn cast<T: Pod + Zeroable>(&self) -> &T {
+        bytemuck::from_bytes(&self.data[..])
+    }
+
+    #[inline(always)]
+    pub fn cast_mut<T: Pod + Zeroable>(&mut self) -> &mut T {
+        bytemuck::from_bytes_mut(&mut self.data[..])
+    }
+}
+
+pub trait HasDynStructLayout {
+    fn dyn_struct_layout() -> Arc<DynStructLayout>;
 }

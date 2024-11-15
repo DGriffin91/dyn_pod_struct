@@ -5,12 +5,11 @@ edition = "2021"
 
 [dependencies]
 bytemuck = { version = "1.19.0", features = ["derive"] }
+fxhash = "0.2.1"
+dyn_struct_derive = { path = "dyn_struct_derive" }
 
 # TODO move to dev-dependencies?
 glam = { version = "0.27.0", features = ["bytemuck"] }
-
-dyn_struct_core = { path = "dyn_struct_core" }
-dyn_struct_derive = { path = "dyn_struct_derive" }
 
 [profile.release-with-debug]
 inherits = "release"

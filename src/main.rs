@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use bytemuck::{Pod, Zeroable};
-use dyn_struct_core::{DynStruct, HasDynStructLayout};
+use dyn_struct::{DynStruct, HasDynStructLayout};
 use dyn_struct_derive::DynLayout;
 use glam::{Affine3A, Vec3};
 
