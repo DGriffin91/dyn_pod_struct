@@ -35,10 +35,9 @@ fn main() {
 
     let start = Instant::now();
     let instances = (0..size)
-        .map(|i| {
-            let mut data = InstanceData::default();
-            data.first_index = i;
-            data
+        .map(|i| InstanceData {
+            first_index: i,
+            ..Default::default()
         })
         .collect::<Vec<_>>();
     println!(
@@ -55,8 +54,10 @@ fn main() {
     let start = Instant::now();
     let instances = (0..size)
         .map(|i| {
-            let mut data = InstanceData::default();
-            data.first_index = i;
+            let data = InstanceData {
+                first_index: i,
+                ..Default::default()
+            };
             DynStruct::from_struct_with_layout(&data, &layout)
         })
         .collect::<Vec<_>>();
