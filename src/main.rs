@@ -3,14 +3,14 @@ use std::time::Instant;
 use bytemuck::{Pod, Zeroable};
 use dyn_struct::{DynStruct, HasDynStructLayout};
 use dyn_struct_derive::DynLayout;
-use glam::{Affine3A, Vec3};
+use glam::{Mat4, Vec3};
 
 #[repr(C)]
 #[derive(DynLayout, Copy, Clone, Default, Zeroable, Debug, PartialEq)]
 pub struct InstanceData {
-    pub local_to_world: Affine3A,          // model
-    pub world_to_local: Affine3A,          // inverse model
-    pub previous_local_to_world: Affine3A, // previous model
+    pub local_to_world: Mat4,          // model
+    pub world_to_local: Mat4,          // inverse model
+    pub previous_local_to_world: Mat4, // previous model
     pub aabb_min: Vec3,
     pub material_index: u32,
     pub aabb_max: Vec3,
@@ -30,7 +30,7 @@ fn main() {
     dbg!(&layout
         .fields
         .iter()
-        .map(|(n, t)| format!("{n}: {:?},", t.ty_))
+        .map(|(n, t)| format!("{n}: {:?},", t.ty))
         .collect::<Vec<_>>());
 
     let start = Instant::now();

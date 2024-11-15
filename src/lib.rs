@@ -1,9 +1,11 @@
+pub mod spirv;
+
 use std::sync::Arc;
 
 use bytemuck::{bytes_of, Pod, Zeroable};
 use fxhash::FxHashMap;
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub enum BaseType {
     #[default]
     None,
@@ -34,7 +36,6 @@ pub enum BaseType {
     Mat4,
     Quat,
     Affine2,
-    Affine3A,
     DVec2,
     DVec3,
     DVec4,
@@ -126,7 +127,6 @@ impl_base_type_info!(
     glam::Mat4 => Mat4,
     glam::Quat => Quat,
     glam::Affine2 => Affine2,
-    glam::Affine3A => Affine3A,
     glam::DVec2 => DVec2,
     glam::DVec3 => DVec3,
     glam::DVec4 => DVec4,
@@ -137,14 +137,14 @@ impl_base_type_info!(
     glam::DAffine3 => DAffine3
 );
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub struct DynField {
     pub offset: u32, // In bytes
     // Spare 32 bits of padding here, could cache size here. Is faster than checking size of type with .size_of()
-    pub ty_: BaseType,
+    pub ty: BaseType,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct DynStructLayout {
     pub name: String,
     // Fields in struct order
@@ -201,7 +201,7 @@ impl DynStruct {
     pub fn get<T: Pod + Zeroable>(&self, path: &[&str]) -> Option<&T> {
         if let Some(field) = self.get_path::<T>(path) {
             // If this shouldn't be debug, bring back DynField size, field.ty_.size_of() is too slow
-            debug_assert_eq!(size_of::<T>(), field.ty_.size_of());
+            debug_assert_eq!(size_of::<T>(), field.ty.size_of());
             Some(self.get_raw(field.offset as usize))
         } else {
             None
@@ -212,7 +212,7 @@ impl DynStruct {
     pub fn get_mut<T: Pod + Zeroable>(&mut self, path: &[&str]) -> Option<&mut T> {
         if let Some(field) = self.get_path::<T>(path) {
             // If this shouldn't be debug, bring back DynField size, field.ty_.size_of() is too slow
-            debug_assert_eq!(size_of::<T>(), field.ty_.size_of());
+            debug_assert_eq!(size_of::<T>(), field.ty.size_of());
             Some(self.get_mut_raw(field.offset as usize))
         } else {
             None
@@ -228,7 +228,7 @@ impl DynStruct {
 
         for (i, s) in path.iter().enumerate() {
             field = layout.fields_hash.get(*s);
-            if let BaseType::Struct(field_layout) = &field?.ty_ {
+            if let BaseType::Struct(field_layout) = &field?.ty {
                 layout = field_layout;
             } else if last != i {
                 // If this isn't the end of the path, a struct is expected.
@@ -238,7 +238,7 @@ impl DynStruct {
 
         if let Some(field) = field {
             // If this shouldn't be debug, bring back DynField size, field.ty_.size_of() is too slow
-            debug_assert_eq!(size_of::<T>(), field.ty_.size_of());
+            debug_assert_eq!(size_of::<T>(), field.ty.size_of());
             Some(field)
         } else {
             None

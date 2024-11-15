@@ -37,8 +37,8 @@ pub fn dyn_struct_layout_macro(input: TokenStream) -> TokenStream {
 
     let glam_types: HashSet<String> = [
         "IVec2", "IVec3", "IVec4", "UVec2", "UVec3", "UVec4", "Vec2", "Vec3", "Vec4", "Mat2",
-        "Mat3", "Mat4", "Quat", "Affine2", "Affine3A", "DVec2", "DVec3", "DVec4", "DMat2", "DMat3",
-        "DMat4", "DAffine2", "DAffine3",
+        "Mat3", "Mat4", "Quat", "Affine2", "DVec2", "DVec3", "DVec4", "DMat2", "DMat3", "DMat4",
+        "DAffine2", "DAffine3",
     ]
     .iter()
     .map(|s| s.to_string())
@@ -76,7 +76,7 @@ pub fn dyn_struct_layout_macro(input: TokenStream) -> TokenStream {
                 dyn_struct::DynField {
                     offset: offset as u32,
                     // size: #size_expr as u32,
-                    ty_: #struct_layout,
+                    ty: #struct_layout,
                 }
             ));
             offset += #size_expr;
