@@ -43,6 +43,7 @@ name = "dyn_struct_core"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
+ "dyn_struct_derive",
  "fxhash",
  "glam",
 ]
@@ -51,7 +52,6 @@ dependencies = [
 name = "dyn_struct_derive"
 version = "0.1.0"
 dependencies = [
- "dyn_struct_core",
  "proc-macro-crate",
  "proc-macro2",
  "quote",

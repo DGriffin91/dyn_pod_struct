@@ -1,13 +1,13 @@
 use std::time::Instant;
 
-use bytemuck::{bytes_of, Pod, Zeroable};
+use bytemuck::{Pod, Zeroable};
 use dyn_struct_core::{DynStruct, HasDynStructLayout};
 use dyn_struct_derive::DynLayout;
 use glam::{Affine3A, Vec3};
 
 #[repr(C)]
 #[derive(DynLayout, Copy, Clone, Default, Zeroable, Debug, PartialEq)]
-pub struct DynInstanceData {
+pub struct InstanceData {
     pub local_to_world: Affine3A,          // model
     pub world_to_local: Affine3A,          // inverse model
     pub previous_local_to_world: Affine3A, // previous model
@@ -21,11 +21,11 @@ pub struct DynInstanceData {
     pub first_vertex: u32,
 }
 
-unsafe impl Pod for DynInstanceData {}
+unsafe impl Pod for InstanceData {}
 
 fn main() {
     let size = 30_000_000;
-    let layout = DynInstanceData::dyn_struct_layout();
+    let layout = InstanceData::dyn_struct_layout();
     dbg!(&layout.name);
     dbg!(&layout
         .fields
@@ -36,7 +36,7 @@ fn main() {
     let start = Instant::now();
     let instances = (0..size)
         .map(|i| {
-            let mut data = DynInstanceData::default();
+            let mut data = InstanceData::default();
             data.first_index = i;
             data
         })
@@ -55,12 +55,9 @@ fn main() {
     let start = Instant::now();
     let instances = (0..size)
         .map(|i| {
-            let mut data = DynInstanceData::default();
+            let mut data = InstanceData::default();
             data.first_index = i;
-            DynStruct {
-                data: bytes_of(&data).to_vec(),
-                layout: layout.clone(),
-            }
+            DynStruct::from_struct_with_layout(&data, &layout)
         })
         .collect::<Vec<_>>();
     println!("{:.2}\tCreate", start.elapsed().as_secs_f32() * 1000.0);

@@ -36,7 +36,6 @@ mod tests {
 
     use super::*;
 
-    use bytemuck::bytes_of;
     use dyn_struct_core::{DynStruct, HasDynStructLayout};
     use glam::vec4;
     use std::fmt::Debug;
@@ -59,10 +58,7 @@ mod tests {
             b: 5.0,
             c: 6,
         };
-        let test_dyn = DynStruct {
-            data: bytes_of(&data).to_vec(),
-            layout,
-        };
+        let test_dyn = DynStruct::from_struct_with_layout(&data, &layout);
 
         check_eq(&test_dyn, &["nested", "a"], 1u32);
         check_eq(&test_dyn, &["nested", "b"], 2.0f32);
@@ -98,10 +94,7 @@ mod tests {
             a3: 3,
             a4: 4,
         };
-        let test_dyn = DynStruct {
-            data: bytes_of(&data).to_vec(),
-            layout,
-        };
+        let test_dyn = DynStruct::from_struct_with_layout(&data, &layout);
 
         check_eq(&test_dyn, &["nested", "a"], 1u32);
         check_eq(&test_dyn, &["nested", "b"], 2.0f32);

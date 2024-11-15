@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use bytemuck::{Pod, Zeroable};
+use bytemuck::{bytes_of, Pod, Zeroable};
 use fxhash::FxHashMap;
 
 #[derive(Clone, Default, Debug)]
@@ -166,6 +166,25 @@ pub struct DynStruct {
 }
 
 impl DynStruct {
+    #[inline(always)]
+    /// Generates the layout from T and copies data. Very slow if creating multiple `DynStruct`s with the same layout.
+    pub fn from_struct<T: HasDynStructLayout + Pod>(data: &T) -> Self {
+        DynStruct {
+            data: bytes_of(data).to_vec(),
+            layout: T::dyn_struct_layout(),
+        }
+    }
+
+    #[inline(always)]
+    /// Copies data into new DynStruct using provided layout. Preferred method if creating many `DynStructs` with the same layout.
+    pub fn from_struct_with_layout<T: Pod>(data: &T, layout: &Arc<DynStructLayout>) -> Self {
+        assert_eq!(size_of::<T>(), layout.size);
+        DynStruct {
+            data: bytes_of(data).to_vec(),
+            layout: layout.clone(),
+        }
+    }
+
     #[inline(always)]
     pub fn get<T: Pod + Zeroable>(&self, path: &[&str]) -> Option<&T> {
         if let Some(field) = self.get_path::<T>(path) {

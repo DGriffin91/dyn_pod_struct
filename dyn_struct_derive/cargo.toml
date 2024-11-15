@@ -9,7 +9,6 @@ syn = { version = "2.0", features = ["full"] }
 proc-macro2 = "1.0"
 proc-macro-crate = "1.2"
 
-dyn_struct_core = { path = "../dyn_struct_core" }
 
 [lib]
 proc-macro = true
