@@ -58,7 +58,7 @@ mod tests {
             &vec![],
         )
         .unwrap();
-        let hlsl_layout = DynStructLayout::from_spirv(&spirv, "InstanceData");
+        let hlsl_layout = DynStructLayout::from_spirv(&spirv, "InstanceData").unwrap();
         let rust_layout = InstanceData::dyn_struct_layout();
         assert_eq!(hlsl_layout, rust_layout);
         dbg!(&hlsl_layout.name);

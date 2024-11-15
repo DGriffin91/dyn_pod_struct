@@ -6,7 +6,10 @@ use spirq::{var::Variable, ReflectConfig};
 use crate::{BaseType, DynField, DynStructLayout};
 
 impl DynStructLayout {
-    pub fn from_spirv(spirv: &[u8], name: &str) -> Arc<DynStructLayout> {
+    /// Recursively searches for struct with provided name and generates layout.
+    pub fn from_spirv(spirv: &[u8], name: &str) -> Option<Arc<DynStructLayout>> {
+        let name = &name.to_string();
+
         let entry_points = ReflectConfig::new()
             .spv(cast_slice::<u8, u32>(spirv))
             .ref_all_rscs(true)
@@ -15,59 +18,63 @@ impl DynStructLayout {
 
         let mut fields = Vec::new();
 
-        for var in &entry_points[0].vars {
-            if let Variable::Descriptor {
-                name: _,
-                desc_bind: _,
-                desc_ty: _,
-                ty,
-                nbind: _,
-            } = var
-            {
-                if let spirq::ty::Type::Struct(struct_type) = ty {
-                    //dbg!(&struct_type.name);
-                    //dbg!(&ty);
-                    let Some(ref struct_name) = struct_type.name else {
-                        continue;
-                    };
-                    // This will be like: type.RWStructuredBuffer.InstanceData
-                    if struct_name.split(".").last() != Some(name) {
-                        continue;
+        fn find_matching_struct<'a>(
+            var: &'a spirq::ty::Type,
+            name: &String,
+        ) -> Option<spirq::ty::StructType> {
+            match var {
+                spirq::ty::Type::Struct(struct_type) => {
+                    if struct_type.name.as_ref() == Some(name) {
+                        return Some(struct_type.clone());
                     }
 
-                    if let spirq::ty::Type::Array(inner_ty) = &struct_type.members[0].ty {
-                        if let spirq::ty::Type::Struct(inner_struct_type) =
-                            *inner_ty.element_ty.clone()
-                        {
-                            for member in &inner_struct_type.members {
-                                // TODO detect padding and disallow?
-                                let name = member
-                                    .name
-                                    .clone()
-                                    .unwrap_or(format!("param_{}", fields.len()));
-                                let offset = member.offset.unwrap() as u32;
-                                let dyn_ty = spirq_ty_to_dyn(member);
-                                //dbg!(&name, (&u32_offset, &dyn_ty));
-                                fields.push((name, DynField { offset, ty: dyn_ty }));
-                            }
-                        } else {
-                            panic!("Expected inner struct type {:?}", name)
+                    for member in &struct_type.members {
+                        if let Some(found) = find_matching_struct(&member.ty, name) {
+                            return Some(found);
                         }
-                    } else {
-                        panic!("Expected array type {:?}", name)
                     }
-                } else {
-                    panic!("Dyn reflect only support struct type. {:?}", name)
                 }
-                break;
+                spirq::ty::Type::Array(array_type) => {
+                    return find_matching_struct(&*array_type.element_ty, name);
+                }
+                _ => {}
+            }
+
+            None
+        }
+
+        let mut matching_struct = None;
+        for var in &entry_points[0].vars {
+            if let Variable::Descriptor { ty, .. } = var {
+                matching_struct = find_matching_struct(ty, name);
+                if matching_struct.is_some() {
+                    break;
+                }
             }
         }
+
+        if let Some(matching_struct) = matching_struct {
+            for member in &matching_struct.members {
+                // TODO detect padding and disallow?
+                let name = member
+                    .name
+                    .clone()
+                    .unwrap_or(format!("param_{}", fields.len()));
+                let offset = member.offset.unwrap() as u32;
+                let dyn_ty = spirq_ty_to_dyn(member);
+                //dbg!(&name, (&u32_offset, &dyn_ty));
+                fields.push((name, DynField { offset, ty: dyn_ty }));
+            }
+        } else {
+            return None;
+        }
+
         let mut total_size = 0;
         if let Some((_, last)) = fields.last() {
             total_size = last.offset as usize + last.ty.size_of();
         }
 
-        Arc::new(DynStructLayout::new(name, total_size, fields))
+        Some(Arc::new(DynStructLayout::new(&name, total_size, fields)))
     }
 }
 
@@ -75,7 +82,7 @@ pub fn spirq_ty_to_dyn(member: &spirq::ty::StructMember) -> BaseType {
     let dyn_ty = match &member.ty {
         spirq::ty::Type::Scalar(scalar_type) => match *scalar_type {
             spirq::ty::ScalarType::Void => BaseType::None,
-            spirq::ty::ScalarType::Boolean => BaseType::Bool,
+            spirq::ty::ScalarType::Boolean => unimplemented!(), // I think this bool is 32 bits
             spirq::ty::ScalarType::Integer { bits, is_signed } => match bits {
                 8 => match is_signed {
                     true => unimplemented!(),
