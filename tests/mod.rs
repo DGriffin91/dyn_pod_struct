@@ -4,7 +4,7 @@ mod tests {
     use bytemuck::{Pod, Zeroable};
     use dyn_struct::{DynStruct, HasDynStructLayout};
     use dyn_struct_derive::DynLayout;
-    use glam::{vec4, Vec4};
+    use glam::{ivec4, uvec4, vec4, IVec4, UVec4, Vec4};
     use std::fmt::Debug;
 
     #[repr(C)]
@@ -33,6 +33,8 @@ mod tests {
         pub a2: u32,
         pub a3: u32,
         pub a4: u32,
+        pub u: UVec4,
+        pub i: IVec4,
     }
 
     fn check_eq<T: PartialEq<T> + Pod + Debug>(test_dyn: &DynStruct, path: &[&str], v: T) {
@@ -88,6 +90,8 @@ mod tests {
             a2: 2,
             a3: 3,
             a4: 4,
+            u: uvec4(5, 6, 7, 8),
+            i: ivec4(-5, -6, -7, -8),
         };
         let test_dyn = DynStruct::from_struct_with_layout(&data, &layout);
 
@@ -100,5 +104,7 @@ mod tests {
         check_eq(&test_dyn, &["a2"], 2u32);
         check_eq(&test_dyn, &["a3"], 3u32);
         check_eq(&test_dyn, &["a4"], 4u32);
+        check_eq(&test_dyn, &["u"], uvec4(5, 6, 7, 8));
+        check_eq(&test_dyn, &["i"], ivec4(-5, -6, -7, -8));
     }
 }
