@@ -96,7 +96,7 @@ pub fn spirq_ty_to_dyn(member: &spirq::ty::StructMember, parent_offset: u32) -> 
             spirq::ty::ScalarType::Boolean => unimplemented!(), // I think this bool is 32 bits
             spirq::ty::ScalarType::Integer { bits, is_signed } => match bits {
                 8 => match is_signed {
-                    true => unimplemented!(),
+                    true => BaseType::I8,
                     false => BaseType::U8,
                 },
                 16 => match is_signed {

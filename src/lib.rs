@@ -47,6 +47,50 @@ pub enum BaseType {
     Struct(Arc<DynStructLayout>),
 }
 
+impl BaseType {
+    pub fn rust_base_type(&self) -> bool {
+        match &self {
+            BaseType::None => false, // This is actually a zst, maybe shouldn't exist or be named differently.
+            BaseType::U8 => true,
+            BaseType::U16 => true,
+            BaseType::U32 => true,
+            BaseType::U64 => true,
+            BaseType::U128 => true,
+            BaseType::I8 => true,
+            BaseType::I16 => true,
+            BaseType::I32 => true,
+            BaseType::I64 => true,
+            BaseType::I128 => true,
+            BaseType::F32 => true,
+            BaseType::F64 => true,
+            BaseType::Bool => true, // Warning c bool and shader bool will probably never match
+            BaseType::UVec2 => false,
+            BaseType::UVec3 => false,
+            BaseType::UVec4 => false,
+            BaseType::IVec2 => false,
+            BaseType::IVec3 => false,
+            BaseType::IVec4 => false,
+            BaseType::Vec2 => false,
+            BaseType::Vec3 => false,
+            BaseType::Vec4 => false,
+            BaseType::Mat2 => false,
+            BaseType::Mat3 => false,
+            BaseType::Mat4 => false,
+            BaseType::Quat => false,
+            BaseType::Affine2 => false,
+            BaseType::DVec2 => false,
+            BaseType::DVec3 => false,
+            BaseType::DVec4 => false,
+            BaseType::DMat2 => false,
+            BaseType::DMat3 => false,
+            BaseType::DMat4 => false,
+            BaseType::DAffine2 => false,
+            BaseType::DAffine3 => false,
+            BaseType::Struct(_) => false,
+        }
+    }
+}
+
 pub trait BaseTypeInfo {
     const SIZE: usize;
 }
@@ -169,6 +213,27 @@ impl DynStructLayout {
             fields_hash: field_hash,
             size,
         }
+    }
+    pub fn print_with_offsets(&self, depth: usize) {
+        let padding = " ".repeat(depth * 4 + 12);
+        println!("{padding}{} {{", self.name);
+        for (field_name, field) in &self.fields {
+            let padding = " ".repeat((depth + 1) * 4);
+            let size = field.ty.size_of();
+            let offset = field.offset;
+            if let BaseType::Struct(layout) = &field.ty {
+                println!("{size:>5} {offset:>5} {padding}{field_name}: ",);
+                layout.print_with_offsets(depth + 1);
+            } else {
+                let mut ty_name = format!("{:?}", &field.ty);
+                if field.ty.rust_base_type() {
+                    ty_name = ty_name.to_lowercase();
+                }
+                println!("{size:>5} {offset:>5} {padding}{field_name}: {ty_name}",);
+            }
+        }
+        let padding = " ".repeat(depth * 4 + 12);
+        println!("{padding}}}");
     }
 }
 
