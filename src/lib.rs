@@ -335,6 +335,32 @@ impl DynLayout {
         let padding = " ".repeat(depth * 4 + 14);
         writeln!(f, "{padding} }}")
     }
+
+    #[inline(always)]
+    pub fn get_path<T: Pod + Zeroable>(&self, path: &[&str]) -> Option<&DynField> {
+        let mut layout = self;
+        let mut field = None;
+
+        let last = path.len() - 1;
+
+        for (i, s) in path.iter().enumerate() {
+            field = layout.fields_hash.get(*s);
+            if let BaseType::Struct(field_layout) = &field?.ty {
+                layout = field_layout;
+            } else if last != i {
+                // If this isn't the end of the path, a struct is expected.
+                return None;
+            }
+        }
+
+        if let Some(field) = field {
+            // If this shouldn't be debug, bring back DynField size, field.ty_.size_of() is too slow
+            debug_assert_eq!(size_of::<T>(), field.ty.size_of());
+            Some(field)
+        } else {
+            None
+        }
+    }
 }
 
 pub struct DynStruct {
@@ -374,7 +400,7 @@ impl DynStruct {
 
     #[inline(always)]
     pub fn get<T: Pod + Zeroable>(&self, path: &[&str]) -> Option<&T> {
-        if let Some(field) = self.get_path::<T>(path) {
+        if let Some(field) = self.layout.get_path::<T>(path) {
             // If this shouldn't be debug, bring back DynField size, field.ty_.size_of() is too slow
             debug_assert_eq!(size_of::<T>(), field.ty.size_of());
             Some(self.get_raw(field.offset as usize))
@@ -385,36 +411,10 @@ impl DynStruct {
 
     #[inline(always)]
     pub fn get_mut<T: Pod + Zeroable>(&mut self, path: &[&str]) -> Option<&mut T> {
-        if let Some(field) = self.get_path::<T>(path) {
+        if let Some(field) = self.layout.get_path::<T>(path) {
             // If this shouldn't be debug, bring back DynField size, field.ty_.size_of() is too slow
             debug_assert_eq!(size_of::<T>(), field.ty.size_of());
             Some(self.get_mut_raw(field.offset as usize))
-        } else {
-            None
-        }
-    }
-
-    #[inline(always)]
-    pub fn get_path<T: Pod + Zeroable>(&self, path: &[&str]) -> Option<&DynField> {
-        let mut layout = &self.layout;
-        let mut field = None;
-
-        let last = path.len() - 1;
-
-        for (i, s) in path.iter().enumerate() {
-            field = layout.fields_hash.get(*s);
-            if let BaseType::Struct(field_layout) = &field?.ty {
-                layout = field_layout;
-            } else if last != i {
-                // If this isn't the end of the path, a struct is expected.
-                return None;
-            }
-        }
-
-        if let Some(field) = field {
-            // If this shouldn't be debug, bring back DynField size, field.ty_.size_of() is too slow
-            debug_assert_eq!(size_of::<T>(), field.ty.size_of());
-            Some(field)
         } else {
             None
         }

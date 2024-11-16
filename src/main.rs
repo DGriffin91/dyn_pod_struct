@@ -71,6 +71,7 @@ fn main() {
     );
     //std::thread::sleep(std::time::Duration::from_millis(1000));
     let offset = instances[0]
+        .layout
         .get_path::<u32>(&["first_index"])
         .unwrap()
         .offset as usize;
