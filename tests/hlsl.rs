@@ -80,6 +80,6 @@ mod tests {
         let hlsl_layout = DynStructLayout::from_spirv(&spirv, "InstanceData").unwrap();
         let rust_layout = InstanceData::dyn_struct_layout();
         assert_eq!(hlsl_layout, rust_layout);
-        hlsl_layout.print_with_offsets(0);
+        println!("{}", hlsl_layout);
     }
 }

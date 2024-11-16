@@ -92,6 +92,6 @@ mod tests {
         let wgsl_layout = DynStructLayout::from_spirv(cast_slice(&spirv), "InstanceData").unwrap();
         let rust_layout = InstanceData::dyn_struct_layout();
         assert_eq!(wgsl_layout, rust_layout);
-        wgsl_layout.print_with_offsets(0);
+        println!("{}", wgsl_layout);
     }
 }

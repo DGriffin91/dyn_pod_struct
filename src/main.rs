@@ -26,7 +26,7 @@ unsafe impl Pod for InstanceData {}
 fn main() {
     let size = 30_000_000;
     let layout = InstanceData::dyn_struct_layout();
-    layout.print_with_offsets(0);
+    println!("{}", layout);
 
     let start = Instant::now();
     let instances = (0..size)

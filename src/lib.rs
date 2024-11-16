@@ -1,5 +1,6 @@
 pub mod spirv;
 
+use core::fmt;
 use std::sync::Arc;
 
 use bytemuck::{bytes_of, Pod, Zeroable};
@@ -201,6 +202,12 @@ pub struct DynStructLayout {
     pub size: usize,
 }
 
+impl fmt::Display for DynStructLayout {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.format_with_offsets(0, f)
+    }
+}
+
 impl DynStructLayout {
     pub fn new(name: &str, size: usize, fields: Vec<(String, DynField)>) -> Self {
         let mut field_hash = FxHashMap::default();
@@ -214,26 +221,35 @@ impl DynStructLayout {
             size,
         }
     }
-    pub fn print_with_offsets(&self, depth: usize) {
-        let padding = " ".repeat(depth * 4 + 12);
-        println!("{padding}{} {{", self.name);
+
+    pub fn format_with_offsets(&self, depth: usize, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let padding = " ".repeat(depth * 4 + 14);
+        if depth == 0 {
+            writeln!(f, "  Size Offset (bytes)")?;
+            writeln!(f, "-----------------------")?;
+            let size = self.size;
+            let offset = 0;
+            write!(f, "{size:>6} {offset:>6}  ")?;
+        }
+        writeln!(f, "{}", self.name)?;
+        writeln!(f, "{padding} {{")?;
         for (field_name, field) in &self.fields {
             let padding = " ".repeat((depth + 1) * 4);
             let size = field.ty.size_of();
             let offset = field.offset;
             if let BaseType::Struct(layout) = &field.ty {
-                println!("{size:>5} {offset:>5} {padding}{field_name}: ",);
-                layout.print_with_offsets(depth + 1);
+                write!(f, "{size:>6} {offset:>6}  {padding}{field_name}: ")?;
+                layout.format_with_offsets(depth + 1, f)?;
             } else {
                 let mut ty_name = format!("{:?}", &field.ty);
                 if field.ty.rust_base_type() {
                     ty_name = ty_name.to_lowercase();
                 }
-                println!("{size:>5} {offset:>5} {padding}{field_name}: {ty_name}",);
+                writeln!(f, "{size:>6} {offset:>6}  {padding}{field_name}: {ty_name}")?;
             }
         }
-        let padding = " ".repeat(depth * 4 + 12);
-        println!("{padding}}}");
+        let padding = " ".repeat(depth * 4 + 14);
+        writeln!(f, "{padding} }}")
     }
 }
 
