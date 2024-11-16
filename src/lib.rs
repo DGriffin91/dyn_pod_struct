@@ -48,7 +48,7 @@ pub enum BaseType {
     DMat4,
     DAffine2,
     DAffine3,
-    Struct(Arc<DynStructLayout>),
+    Struct(Arc<DynLayout>),
 }
 
 impl BaseType {
@@ -193,7 +193,7 @@ pub struct DynField {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct DynStructLayout {
+pub struct DynLayout {
     pub name: String,
     // Fields in struct order
     pub fields: Vec<(String, DynField)>,
@@ -205,7 +205,7 @@ pub struct DynStructLayout {
     pub size: usize,
 }
 
-impl Display for DynStructLayout {
+impl Display for DynLayout {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.format_with_offsets(0, f)
     }
@@ -271,13 +271,13 @@ pub fn diff_display<T: Display, U: Display>(a: T, b: U) {
     t.flush().unwrap();
 }
 
-impl DynStructLayout {
+impl DynLayout {
     pub fn new(name: &str, size: usize, fields: Vec<(String, DynField)>) -> Self {
         let mut field_hash = FxHashMap::default();
         fields.iter().for_each(|(name, field)| {
             field_hash.insert(name.clone(), field.clone());
         });
-        DynStructLayout {
+        DynLayout {
             name: name.to_string(),
             fields,
             fields_hash: field_hash,
@@ -318,15 +318,15 @@ impl DynStructLayout {
 
 pub struct DynStruct {
     pub data: Vec<u8>,
-    pub layout: Arc<DynStructLayout>,
+    pub layout: Arc<DynLayout>,
 }
 
 impl DynStruct {
     #[inline(always)]
     /// Copies data into new DynStruct using provided layout.
     /// Creating a layout can be slow, prefer creating a layout once and reusing.
-    /// let layout = T::dyn_struct_layout();
-    pub fn new<T: Pod>(data: &T, layout: &Arc<DynStructLayout>) -> Self {
+    /// let layout = T::dyn_layout();
+    pub fn new<T: Pod>(data: &T, layout: &Arc<DynLayout>) -> Self {
         assert_eq!(size_of::<T>(), layout.size);
         DynStruct {
             data: bytes_of(data).to_vec(),
@@ -393,7 +393,7 @@ impl DynStruct {
     }
 }
 
-pub trait HasDynStructLayout {
+pub trait HasDynLayout {
     /// Creating a layout can be slow, prefer creating a layout once and reusing.
-    fn dyn_struct_layout() -> Arc<DynStructLayout>;
+    fn dyn_layout() -> Arc<DynLayout>;
 }

@@ -3,11 +3,11 @@ use std::sync::Arc;
 use bytemuck::cast_slice;
 use spirq::{var::Variable, ReflectConfig};
 
-use crate::{BaseType, DynField, DynStructLayout};
+use crate::{BaseType, DynField, DynLayout};
 
-impl DynStructLayout {
+impl DynLayout {
     /// Recursively searches for struct with provided name and generates layout.
-    pub fn from_spirv(spirv: &[u8], name: &str) -> Option<Arc<DynStructLayout>> {
+    pub fn from_spirv(spirv: &[u8], name: &str) -> Option<Arc<DynLayout>> {
         let name = &name.to_string();
 
         let entry_points = ReflectConfig::new()
@@ -58,10 +58,7 @@ impl DynStructLayout {
     }
 }
 
-pub fn struct_to_layout(
-    struct_type: spirq::ty::StructType,
-    parent_offset: u32,
-) -> Arc<DynStructLayout> {
+pub fn struct_to_layout(struct_type: spirq::ty::StructType, parent_offset: u32) -> Arc<DynLayout> {
     let mut fields = Vec::new();
     for member in &struct_type.members {
         // TODO detect padding and disallow?
@@ -82,7 +79,7 @@ pub fn struct_to_layout(
         }
     }
 
-    Arc::new(DynStructLayout::new(
+    Arc::new(DynLayout::new(
         &struct_type.name.unwrap_or("UnknownStructName".to_string()),
         total_size,
         fields,

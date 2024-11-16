@@ -2,8 +2,8 @@
 mod tests {
 
     use bytemuck::{cast_slice, Zeroable};
-    use dyn_struct::{DynStructLayout, HasDynStructLayout};
-    use dyn_struct_derive::DynLayout;
+    use dyn_pod_struct::{DynLayout, HasDynLayout};
+    use dyn_pod_struct_derive::DynLayout;
     use glam::{Mat4, Vec3};
     use naga::{
         back::spv,
@@ -89,8 +89,8 @@ mod tests {
         )
         .unwrap();
 
-        let wgsl_layout = DynStructLayout::from_spirv(cast_slice(&spirv), "InstanceData").unwrap();
-        let rust_layout = InstanceData::dyn_struct_layout();
+        let wgsl_layout = DynLayout::from_spirv(cast_slice(&spirv), "InstanceData").unwrap();
+        let rust_layout = InstanceData::dyn_layout();
         assert_eq!(wgsl_layout, rust_layout);
         println!("{}", wgsl_layout);
     }

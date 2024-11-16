@@ -2,8 +2,8 @@
 mod tests {
 
     use bytemuck::{Pod, Zeroable};
-    use dyn_struct::{DynStruct, HasDynStructLayout};
-    use dyn_struct_derive::DynLayout;
+    use dyn_pod_struct::{DynStruct, HasDynLayout};
+    use dyn_pod_struct_derive::DynLayout;
     use glam::{ivec4, uvec4, vec4, IVec4, UVec4, Vec4};
     use std::fmt::Debug;
 
@@ -43,7 +43,7 @@ mod tests {
 
     #[test]
     fn test_get_simple_field() {
-        let layout = MyStruct::dyn_struct_layout();
+        let layout = MyStruct::dyn_layout();
 
         let data = MyStruct {
             nested: NestedStruct {
@@ -74,7 +74,7 @@ mod tests {
         check_eq(&test_dyn, &["b"], 5.0f32);
         check_eq(&test_dyn, &["c"], 6u32);
 
-        let layout = MyStruct2::dyn_struct_layout();
+        let layout = MyStruct2::dyn_layout();
 
         //dbg!(&layout.fields);
 

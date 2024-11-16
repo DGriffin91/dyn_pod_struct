@@ -1,8 +1,8 @@
 use std::time::Instant;
 
 use bytemuck::{Pod, Zeroable};
-use dyn_struct::{DynStruct, HasDynStructLayout};
-use dyn_struct_derive::DynLayout;
+use dyn_pod_struct::{DynStruct, HasDynLayout};
+use dyn_pod_struct_derive::DynLayout;
 use glam::{Mat4, Vec3};
 
 #[repr(C)]
@@ -25,7 +25,7 @@ unsafe impl Pod for InstanceData {}
 
 fn main() {
     let size = 30_000_000;
-    let layout = InstanceData::dyn_struct_layout();
+    let layout = InstanceData::dyn_layout();
     println!("{}", layout);
 
     let start = Instant::now();

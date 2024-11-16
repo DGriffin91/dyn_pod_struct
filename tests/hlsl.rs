@@ -2,8 +2,8 @@
 mod tests {
 
     use bytemuck::Zeroable;
-    use dyn_struct::{DynStructLayout, HasDynStructLayout};
-    use dyn_struct_derive::DynLayout;
+    use dyn_pod_struct::{DynLayout, HasDynLayout};
+    use dyn_pod_struct_derive::DynLayout;
     use glam::{Mat4, Vec3};
     use hassle_rs::compile_hlsl;
 
@@ -77,8 +77,8 @@ mod tests {
             &vec![],
         )
         .unwrap();
-        let hlsl_layout = DynStructLayout::from_spirv(&spirv, "InstanceData").unwrap();
-        let rust_layout = InstanceData::dyn_struct_layout();
+        let hlsl_layout = DynLayout::from_spirv(&spirv, "InstanceData").unwrap();
+        let rust_layout = InstanceData::dyn_layout();
         assert_eq!(hlsl_layout, rust_layout);
         println!("{}", hlsl_layout);
     }

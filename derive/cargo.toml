@@ -1,5 +1,5 @@
 [package]
-name = "dyn_struct_derive"
+name = "dyn_pod_struct_derive"
 version = "0.1.0"
 edition = "2021"
 

@@ -185,12 +185,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "dyn_struct"
+name = "dyn_pod_struct"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
  "difference",
- "dyn_struct_derive",
+ "dyn_pod_struct_derive",
  "fxhash",
  "glam",
  "hassle-rs",
@@ -200,7 +200,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "dyn_struct_derive"
+name = "dyn_pod_struct_derive"
 version = "0.1.0"
 dependencies = [
  "proc-macro2",

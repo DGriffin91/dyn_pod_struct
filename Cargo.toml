@@ -1,5 +1,5 @@
 [package]
-name = "dyn_struct"
+name = "dyn_pod_struct"
 version = "0.1.0"
 edition = "2021"
 
@@ -10,7 +10,8 @@ naga = { version = "23.0.0", features = ["wgsl-in", "spv-out"] }
 [dependencies]
 bytemuck = { version = "1.19.0", features = ["derive"] }
 fxhash = "0.2.1"
-dyn_struct_derive = { path = "dyn_struct_derive" }
+
+dyn_pod_struct_derive = { path = "derive" } # Make optional?
 
 spirq = "1.2.2"                                        # Make optional?
 glam = { version = "0.27.0", features = ["bytemuck"] } # Make optional?
