@@ -10,7 +10,7 @@ use bytemuck::{bytes_of, Pod, Zeroable};
 use difference::{Changeset, Difference};
 use fxhash::FxHashMap;
 
-#[derive(Clone, Default, Debug, PartialEq)]
+#[derive(Clone, Default, Debug, PartialEq, Hash)]
 pub enum BaseType {
     #[default]
     None,
@@ -186,7 +186,7 @@ impl_base_type_info!(
     glam::DAffine3 => DAffine3
 );
 
-#[derive(Clone, Default, Debug, PartialEq)]
+#[derive(Clone, Default, Debug, PartialEq, Hash)]
 pub struct DynField {
     pub offset: u32, // In bytes
     // Spare 32 bits of padding here, could cache size here. Is faster than checking size of type with .size_of()
@@ -204,6 +204,15 @@ pub struct DynLayout {
     pub fields_hash: FxHashMap<String, DynField>,
     /// Size of this struct in bytes
     pub size: usize,
+}
+
+impl std::hash::Hash for DynLayout {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+        self.fields.hash(state);
+        //self.fields_hash.hash(state); We can skip the fields_hash since this is duplicate data
+        self.size.hash(state);
+    }
 }
 
 impl Display for DynLayout {
