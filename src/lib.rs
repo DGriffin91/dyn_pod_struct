@@ -286,6 +286,17 @@ impl DynLayout {
         }
     }
 
+    /// Append type to end of layout. Assumes no padding between last type and the one being added.
+    pub fn append_type_no_padding(&mut self, name: String, ty: BaseType) {
+        let new_field = DynField {
+            offset: self.size as u32,
+            ty,
+        };
+        self.size += new_field.ty.size_of();
+        self.fields.push((name.clone(), new_field.clone()));
+        self.fields_hash.insert(name, new_field);
+    }
+
     pub fn format_with_offsets(&self, depth: usize, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let padding = " ".repeat(depth * 4 + 14);
         if depth == 0 {
