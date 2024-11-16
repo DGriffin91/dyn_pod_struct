@@ -1,9 +1,12 @@
 pub mod spirv;
 
-use core::fmt;
-use std::sync::Arc;
+use std::{
+    fmt::{self, Display},
+    sync::Arc,
+};
 
 use bytemuck::{bytes_of, Pod, Zeroable};
+use difference::{Changeset, Difference};
 use fxhash::FxHashMap;
 
 #[derive(Clone, Default, Debug, PartialEq)]
@@ -202,10 +205,70 @@ pub struct DynStructLayout {
     pub size: usize,
 }
 
-impl fmt::Display for DynStructLayout {
+impl Display for DynStructLayout {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.format_with_offsets(0, f)
     }
+}
+
+pub fn diff_display<T: Display, U: Display>(a: T, b: U) {
+    // https://github.com/johannhof/difference.rs/blob/master/examples/github-style.rs
+
+    let text1 = format!("{a}");
+    let text2 = format!("{b}");
+
+    // Compare both texts, the third parameter defines the split level.
+    let Changeset { diffs, .. } = Changeset::new(&text1, &text2, "\n");
+
+    let mut t = term::stdout().unwrap();
+
+    for i in 0..diffs.len() {
+        match diffs[i] {
+            Difference::Same(ref x) => {
+                t.reset().unwrap();
+                for line in x.split("\n") {
+                    writeln!(t, " {}", line).unwrap();
+                }
+            }
+            Difference::Add(ref x) => {
+                match diffs[i - 1] {
+                    Difference::Rem(ref y) => {
+                        t.fg(term::color::GREEN).unwrap();
+                        write!(t, "+").unwrap();
+                        let Changeset { diffs, .. } = Changeset::new(y, x, " ");
+                        for c in diffs {
+                            match c {
+                                Difference::Same(ref z) => {
+                                    t.fg(term::color::GREEN).unwrap();
+                                    write!(t, "{}", z).unwrap();
+                                    write!(t, " ").unwrap();
+                                }
+                                Difference::Add(ref z) => {
+                                    t.fg(term::color::WHITE).unwrap();
+                                    t.bg(term::color::GREEN).unwrap();
+                                    write!(t, "{}", z).unwrap();
+                                    t.reset().unwrap();
+                                    write!(t, " ").unwrap();
+                                }
+                                _ => (),
+                            }
+                        }
+                        writeln!(t, "").unwrap();
+                    }
+                    _ => {
+                        t.fg(term::color::BRIGHT_GREEN).unwrap();
+                        writeln!(t, "+{}", x).unwrap();
+                    }
+                };
+            }
+            Difference::Rem(ref x) => {
+                t.fg(term::color::RED).unwrap();
+                writeln!(t, "-{}", x).unwrap();
+            }
+        }
+    }
+    t.reset().unwrap();
+    t.flush().unwrap();
 }
 
 impl DynStructLayout {
