@@ -1,6 +1,7 @@
 pub mod spirv;
 
 use std::{
+    any::type_name,
     fmt::{self, Display},
     sync::Arc,
 };
@@ -192,7 +193,7 @@ pub struct DynField {
     pub ty: BaseType,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct DynLayout {
     pub name: String,
     // Fields in struct order
@@ -327,11 +328,28 @@ impl DynStruct {
     /// Creating a layout can be slow, prefer creating a layout once and reusing.
     /// let layout = T::dyn_layout();
     pub fn new<T: Pod>(data: &T, layout: &Arc<DynLayout>) -> Self {
-        assert_eq!(size_of::<T>(), layout.size);
+        if layout.size != size_of::<T>() {
+            panic!(
+                "DynStruct layout does not match data length ({} != {}). Layout: {:?} T: {}",
+                layout.size,
+                size_of::<T>(),
+                layout.name,
+                type_name::<T>(),
+            )
+        }
         DynStruct {
             data: bytes_of(data).to_vec(),
             layout: layout.clone(),
         }
+    }
+
+    pub fn from_bytes(data: Vec<u8>, layout: Arc<DynLayout>) -> Self {
+        let data_len = data.len();
+        let layout_data_len = layout.size;
+        if layout_data_len != data_len {
+            panic!("DynStruct layout does not match data length ({layout_data_len} != {data_len}). Layout: {:?}", layout.name)
+        }
+        DynStruct { data, layout }
     }
 
     #[inline(always)]
