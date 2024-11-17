@@ -9,6 +9,9 @@ use std::{
 use bytemuck::{bytes_of, Pod, Zeroable};
 use difference::{Changeset, Difference};
 use fxhash::FxHashMap;
+use update_bitmask::UpdateBitmask;
+
+pub mod update_bitmask;
 
 #[derive(Clone, Default, Debug, PartialEq, Hash)]
 pub enum BaseType {
@@ -381,13 +384,18 @@ impl DynLayout {
         }
 
         if let Some(field) = field {
-            // If this shouldn't be debug, bring back DynField size, field.ty_.size_of() is too slow
+            // If this shouldn't be debug, bring back DynField size, field.ty.size_of() is too slow
             debug_assert_eq!(size_of::<T>(), field.ty.size_of());
             Some(field)
         } else {
             None
         }
     }
+}
+
+pub trait HasDynLayout {
+    /// Creating a layout can be slow, prefer creating a layout once and reusing.
+    fn dyn_layout() -> Arc<DynLayout>;
 }
 
 pub struct DynStruct {
@@ -428,7 +436,7 @@ impl DynStruct {
     #[inline(always)]
     pub fn get<T: Pod + Zeroable>(&self, path: &[&str]) -> Option<&T> {
         if let Some(field) = self.layout.get_path::<T>(path) {
-            // If this shouldn't be debug, bring back DynField size, field.ty_.size_of() is too slow
+            // If this shouldn't be debug, bring back DynField size, field.ty.size_of() is too slow
             debug_assert_eq!(size_of::<T>(), field.ty.size_of());
             Some(self.get_raw(field.offset as usize))
         } else {
@@ -439,7 +447,7 @@ impl DynStruct {
     #[inline(always)]
     pub fn get_mut<T: Pod + Zeroable>(&mut self, path: &[&str]) -> Option<&mut T> {
         if let Some(field) = self.layout.get_path::<T>(path) {
-            // If this shouldn't be debug, bring back DynField size, field.ty_.size_of() is too slow
+            // If this shouldn't be debug, bring back DynField size, field.ty.size_of() is too slow
             debug_assert_eq!(size_of::<T>(), field.ty.size_of());
             Some(self.get_mut_raw(field.offset as usize))
         } else {
@@ -458,7 +466,79 @@ impl DynStruct {
     }
 }
 
-pub trait HasDynLayout {
+/// Adds change detection tracking on top of DynStruct.
+/// When `get_mut` or `get_mut_raw` are called the offset or path and size_of::<T>() are used to track what regions of
+/// the data have been updated.
+pub struct TrackedDynStruct {
+    pub dyn_struct: DynStruct,
+    pub update_bitmask: UpdateBitmask,
+    update_stride_exp: usize,
+}
+
+impl TrackedDynStruct {
+    #[inline(always)]
+    /// Copies data into new DynStruct using provided layout.
     /// Creating a layout can be slow, prefer creating a layout once and reusing.
-    fn dyn_layout() -> Arc<DynLayout>;
+    /// let layout = T::dyn_layout();
+    /// `update_stride` is the granularity of update tracking. Must be a power of 2.
+    /// Use 1 for tracking every byte. Use 4 for every 4 bytes, etc...
+    /// Use `update_default` to set whether the update tracking indicates the data has been updated at creation or not.
+    pub fn new<T: Pod>(
+        data: &T,
+        layout: &Arc<DynLayout>,
+        update_stride: usize,
+        update_default: bool,
+    ) -> Self {
+        let update_bitmask = UpdateBitmask::new(size_of::<T>() / update_stride, update_default);
+        let dyn_struct = DynStruct::new(data, layout);
+        TrackedDynStruct {
+            dyn_struct,
+            update_bitmask,
+            update_stride_exp: update_stride.trailing_zeros() as usize,
+        }
+    }
+
+    pub fn from_bytes(
+        data: Vec<u8>,
+        layout: Arc<DynLayout>,
+        update_stride: usize,
+        update_default: bool,
+    ) -> Self {
+        let update_bitmask = UpdateBitmask::new(data.len() / update_stride, update_default);
+        let dyn_struct = DynStruct::from_bytes(data, layout);
+        TrackedDynStruct {
+            dyn_struct,
+            update_bitmask,
+            update_stride_exp: update_stride.trailing_zeros() as usize,
+        }
+    }
+
+    #[inline(always)]
+    pub fn get<T: Pod + Zeroable>(&self, path: &[&str]) -> Option<&T> {
+        self.dyn_struct.get(path)
+    }
+
+    #[inline(always)]
+    pub fn get_mut<T: Pod + Zeroable>(&mut self, path: &[&str]) -> Option<&mut T> {
+        if let Some(field) = self.dyn_struct.layout.get_path::<T>(path) {
+            // If this shouldn't be debug, bring back DynField size, field.ty.size_of() is too slow
+            debug_assert_eq!(size_of::<T>(), field.ty.size_of());
+            Some(self.get_mut_raw(field.offset as usize))
+        } else {
+            None
+        }
+    }
+
+    #[inline(always)]
+    pub fn get_raw<T: Pod + Zeroable>(&self, offset: usize) -> &T {
+        self.dyn_struct.get_raw(offset)
+    }
+
+    #[inline(always)]
+    pub fn get_mut_raw<T: Pod + Zeroable>(&mut self, offset: usize) -> &mut T {
+        let bitmask_start = offset >> self.update_stride_exp;
+        let bitmask_end = (offset + size_of::<T>()) >> self.update_stride_exp;
+        self.update_bitmask.set(bitmask_start..bitmask_end);
+        self.dyn_struct.get_mut_raw(offset)
+    }
 }

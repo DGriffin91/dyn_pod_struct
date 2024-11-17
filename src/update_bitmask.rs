@@ -1,14 +1,14 @@
-pub struct UpdateBitMask {
+pub struct UpdateBitmask {
     bits: Vec<u64>,
     any: bool,
 }
 
-impl UpdateBitMask {
+impl UpdateBitmask {
     #[inline]
     pub fn new(size: usize, default: bool) -> Self {
         let default_val = if default { u64::MAX } else { 0 };
         let bits = vec![default_val; (size + 63) / 64];
-        UpdateBitMask { bits, any: default }
+        UpdateBitmask { bits, any: default }
     }
 
     #[inline]
