@@ -297,7 +297,7 @@ impl DynLayout {
 
     /// Append type to end of layout. Assumes no padding between last type and the one being added.
     /// Assumes ty is not a struct. (Does not setup absolute offsets for struct fields down the hierarchy)
-    pub fn append_type_no_padding(&mut self, name: &str, ty: BaseType) {
+    pub fn append_type(&mut self, name: &str, ty: BaseType) {
         let new_field = DynField {
             offset: self.size as u32,
             ty,
@@ -310,15 +310,17 @@ impl DynLayout {
     /// Append type to end of layout. Assumes no padding between last type and the one being added.
     /// Helper for easily making a New Type. Assumes base_ty is not a struct.
     /// (Does not setup absolute offsets for struct fields down the hierarchy, only for the new type)
-    pub fn append_new_type_no_padding(&mut self, name: &str, base_ty: BaseType, type_name: &str) {
+    /// Access the new type data with ["parent", "inner"]
+    /// (not using 0 here since that would be incompatible with shader languages)
+    pub fn append_new_type(&mut self, name: &str, base_ty: BaseType, type_name: &str) {
         let offset = self.size as u32;
         let new_field = DynField {
             offset,
             ty: BaseType::Struct(Arc::new(DynLayout::new(
                 type_name,
-                4,
+                base_ty.size_of(),
                 vec![(
-                    "data".to_string(),
+                    "inner".to_string(),
                     DynField {
                         offset,
                         ty: base_ty,
