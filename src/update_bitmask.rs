@@ -1,6 +1,6 @@
 pub struct UpdateBitmask {
-    bits: Vec<u64>,
-    any: bool,
+    pub bits: Vec<u64>,
+    pub any: bool,
 }
 
 impl UpdateBitmask {
