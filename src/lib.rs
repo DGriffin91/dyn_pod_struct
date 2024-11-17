@@ -296,14 +296,39 @@ impl DynLayout {
     }
 
     /// Append type to end of layout. Assumes no padding between last type and the one being added.
-    pub fn append_type_no_padding(&mut self, name: String, ty: BaseType) {
+    /// Assumes ty is not a struct. (Does not setup absolute offsets for struct fields down the hierarchy)
+    pub fn append_type_no_padding(&mut self, name: &str, ty: BaseType) {
         let new_field = DynField {
             offset: self.size as u32,
             ty,
         };
         self.size += new_field.ty.size_of();
-        self.fields.push((name.clone(), new_field.clone()));
-        self.fields_hash.insert(name, new_field);
+        self.fields.push((name.to_string(), new_field.clone()));
+        self.fields_hash.insert(name.to_string(), new_field);
+    }
+
+    /// Append type to end of layout. Assumes no padding between last type and the one being added.
+    /// Helper for easily making a New Type. Assumes base_ty is not a struct.
+    /// (Does not setup absolute offsets for struct fields down the hierarchy, only for the new type)
+    pub fn append_new_type_no_padding(&mut self, name: &str, base_ty: BaseType, type_name: &str) {
+        let offset = self.size as u32;
+        let new_field = DynField {
+            offset,
+            ty: BaseType::Struct(Arc::new(DynLayout::new(
+                type_name,
+                4,
+                vec![(
+                    "data".to_string(),
+                    DynField {
+                        offset,
+                        ty: base_ty,
+                    },
+                )],
+            ))),
+        };
+        self.size += new_field.ty.size_of();
+        self.fields.push((name.to_string(), new_field.clone()));
+        self.fields_hash.insert(name.to_string(), new_field);
     }
 
     pub fn format_with_offsets(&self, depth: usize, f: &mut fmt::Formatter<'_>) -> fmt::Result {
