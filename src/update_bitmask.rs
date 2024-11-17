@@ -7,7 +7,7 @@ impl UpdateBitmask {
     #[inline]
     pub fn new(size: usize, default: bool) -> Self {
         let default_val = if default { u64::MAX } else { 0 };
-        let bits = vec![default_val; (size + 63) / 64];
+        let bits = vec![default_val; (size + 63) >> 6]; // (size + 63) / 64
         UpdateBitmask { bits, any: default }
     }
 
@@ -31,14 +31,14 @@ impl UpdateBitmask {
     #[inline]
     pub fn get(&mut self, index: usize) -> bool {
         let bit_index = index % 64;
-        let u64_index = index / 64;
+        let u64_index = index >> 6; // index / 64
         (self.bits[u64_index] & (1 << bit_index)) != 0
     }
 
     #[inline]
     pub fn set_one(&mut self, index: usize) {
         let bit_index = index % 64;
-        let u64_index = index / 64;
+        let u64_index = index >> 6; // index / 64
         self.bits[u64_index] |= 1 << bit_index;
         self.any = true;
     }
