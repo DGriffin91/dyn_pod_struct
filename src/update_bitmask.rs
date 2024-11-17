@@ -29,7 +29,7 @@ impl UpdateBitmask {
     }
 
     #[inline]
-    pub fn get(&mut self, index: usize) -> bool {
+    pub fn get(&self, index: usize) -> bool {
         let bit_index = index % 64;
         let u64_index = index >> 6; // index / 64
         (self.bits[u64_index] & (1 << bit_index)) != 0
