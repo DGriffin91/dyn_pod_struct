@@ -1,13 +1,13 @@
 pub struct UpdateBitmask {
-    pub bits: Vec<u8>,
+    pub bits: Vec<u16>,
     pub any: bool,
 }
 
 impl UpdateBitmask {
     #[inline]
     pub fn new(size: usize, default: bool) -> Self {
-        let default_val = if default { u8::MAX } else { 0 };
-        let bits = vec![default_val; (size + 7) >> 3]; // (size + 7) / 8
+        let default_val = if default { u16::MAX } else { 0 };
+        let bits = vec![default_val; (size + 15) >> 4]; // (size + 7) / 8
         UpdateBitmask { bits, any: default }
     }
 
@@ -19,7 +19,7 @@ impl UpdateBitmask {
 
     #[inline]
     pub fn set_all(&mut self) {
-        self.bits.fill(u8::MAX);
+        self.bits.fill(u16::MAX);
         self.any = true;
     }
 
@@ -30,16 +30,16 @@ impl UpdateBitmask {
 
     #[inline]
     pub fn get(&self, index: usize) -> bool {
-        let bit_index = index % 8;
-        let u8_index = index >> 3; // index / 8
-        (self.bits[u8_index] & (1 << bit_index)) != 0
+        let bit_index = index % 16;
+        let u16_index = index >> 4; // index / 16
+        (self.bits[u16_index] & (1 << bit_index)) != 0
     }
 
     #[inline]
     pub fn set_one(&mut self, index: usize) {
-        let bit_index = index % 8;
-        let u8_index = index >> 3; // index / 8
-        self.bits[u8_index] |= 1 << bit_index;
+        let bit_index = index % 16;
+        let u16_index = index >> 4; // index / 16
+        self.bits[u16_index] |= 1 << bit_index;
         self.any = true;
     }
 
