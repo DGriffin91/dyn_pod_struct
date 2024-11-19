@@ -12,7 +12,8 @@ impl UpdateBitmask {
     }
 
     #[inline]
-    pub fn clear(&mut self) {
+    /// Reset all bits to 0
+    pub fn reset(&mut self) {
         self.bits.fill(0);
         self.any = false;
     }
@@ -45,17 +46,9 @@ impl UpdateBitmask {
 
     #[inline]
     pub fn set(&mut self, range: std::ops::Range<usize>) {
+        // TODO more efficiently handle setting larger ranges (bitmap blit?)
         for i in range {
             self.set_one(i)
         }
     }
 }
-
-// Slow, would need to recompute any
-//#[inline]
-//pub fn unset(&mut self, index: usize) {
-//    let bit_index = index % 64;
-//    let u64_index = index / 64;
-//    self.bits[u64_index] &= !(1 << bit_index);
-//    // Recompute any
-//}

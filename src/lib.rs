@@ -541,4 +541,98 @@ impl TrackedDynStruct {
         self.update_bitmask.set(bitmask_start..bitmask_end);
         self.dyn_struct.get_mut_raw(offset)
     }
+
+    /// dyn_struct.retrieve_changes(|data_slice, start, end| {
+    ///     data.extend_from_slice(data_slice);
+    ///     indices.extend((dst_offset + start)..(dst_offset + end));
+    /// });
+    #[inline(always)]
+    pub fn retrieve_changes<T: bytemuck::Pod>(&self, mut extend_fn: impl FnMut(&[T], u32, u32)) {
+        if !self.update_bitmask.any_set() || self.dyn_struct.data.is_empty() {
+            return;
+        }
+
+        let src_data: &[T] = bytemuck::cast_slice(&self.dyn_struct.data);
+        let data_length = src_data.len();
+
+        for (chunk_n, chunk) in self.update_bitmask.bits.iter().enumerate() {
+            let chunk_index = chunk_n << 4;
+            let mut chunk = *chunk;
+            let mut total = 0;
+            while chunk != 0 {
+                // Start from LSB and chip away at chunk while making copies the size of contiguous ones
+                let count = chunk.trailing_ones() as usize;
+                let start = chunk_index + total;
+                let end = (chunk_index + total + count).min(data_length);
+                extend_fn(&src_data[start..end], start as u32, end as u32);
+                total += count;
+                chunk = chunk.checked_shr(count as u32).unwrap_or(0);
+                let zeros_count = chunk.trailing_zeros();
+                chunk = chunk.checked_shr(zeros_count).unwrap_or(0);
+                total += zeros_count as usize;
+            }
+        }
+    }
+
+    #[inline(always)]
+    pub fn retrieve_changes_and_reset<T: bytemuck::Pod>(
+        &mut self,
+        extend_fn: impl FnMut(&[T], u32, u32),
+    ) {
+        self.retrieve_changes(extend_fn);
+        self.reset_change_detection();
+    }
+
+    #[inline(always)]
+    pub fn changed(&self) -> bool {
+        self.update_bitmask.any_set()
+    }
+
+    #[inline(always)]
+    pub fn reset_change_detection(&mut self) {
+        self.update_bitmask.reset();
+    }
+}
+
+/// retrieve_changes!(u32, dyn_struct, |data_slice, start, end| {
+///     data.extend_from_slice(data_slice);
+///     indices.extend((dst_offset + start)..(dst_offset + end));
+/// });
+// TODO figure out if closure version is slow or not. Also consider generic version.
+#[macro_export]
+macro_rules! retrieve_changes {
+    ($T:ty, $dyn_struct:expr, $extend_fn:expr) => {{
+        if !$dyn_struct.update_bitmask.any_set() || $dyn_struct.dyn_struct.data.is_empty() {
+            return;
+        }
+
+        let src_data: &[$T] = bytemuck::cast_slice(&$dyn_struct.dyn_struct.data);
+        let data_length = src_data.len();
+
+        for (chunk_n, chunk) in $dyn_struct.update_bitmask.bits.iter().enumerate() {
+            let chunk_index = chunk_n << 4;
+            let mut chunk = *chunk;
+            let mut total = 0;
+            while chunk != 0 {
+                // Start from LSB and chip away at chunk while making copies the size of contiguous ones
+                let count = chunk.trailing_ones() as usize;
+                let start = chunk_index + total;
+                let end = (chunk_index + total + count).min(data_length);
+                $extend_fn(&src_data[start..end], start as u32, end as u32);
+                total += count;
+                chunk = chunk.checked_shr(count as u32).unwrap_or(0);
+                let zeros_count = chunk.trailing_zeros();
+                chunk = chunk.checked_shr(zeros_count).unwrap_or(0);
+                total += zeros_count as usize;
+            }
+        }
+    }};
+}
+
+#[macro_export]
+macro_rules! retrieve_changes_and_reset {
+    ($T:ty, $dyn_struct:expr, $extend_fn:expr) => {{
+        $crate::retrieve_changes!($T, $dyn_struct, $extend_fn);
+        $dyn_struct.reset_change_detection();
+    }};
 }
