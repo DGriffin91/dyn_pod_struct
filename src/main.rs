@@ -40,7 +40,10 @@ fn main() {
         start.elapsed().as_secs_f32() * 1000.0
     );
     let start = Instant::now();
-    let sum: u32 = instances.iter().map(|instance| instance.first_index).sum();
+    let sum: u64 = instances
+        .iter()
+        .map(|instance| instance.first_index as u64)
+        .sum();
     println!(
         "{:.2}\tAccess native ({sum})",
         start.elapsed().as_secs_f32() * 1000.0
@@ -61,9 +64,9 @@ fn main() {
     //std::thread::sleep(std::time::Duration::from_millis(1000));
 
     let start = Instant::now();
-    let sum: u32 = instances
+    let sum: u64 = instances
         .iter()
-        .map(|instance| instance.get::<u32>(&["first_index"]).unwrap())
+        .map(|instance| *instance.get::<u32>(&["first_index"]).unwrap() as u64)
         .sum();
     println!(
         "{:.2}\tAccess dyn ({sum})",
@@ -76,9 +79,9 @@ fn main() {
         .unwrap()
         .offset as usize;
     let start = Instant::now();
-    let sum: u32 = instances
+    let sum: u64 = instances
         .iter()
-        .map(|instance| instance.get_raw::<u32>(offset))
+        .map(|instance| *instance.get_raw::<u32>(offset) as u64)
         .sum();
     println!(
         "{:.2}\tAccess dyn fast ({sum})",

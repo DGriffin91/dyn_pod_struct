@@ -3,7 +3,6 @@ mod tests {
 
     use bytemuck::{cast_slice, Zeroable};
     use dyn_pod_struct::{DynLayout, HasDynLayout};
-    use dyn_pod_struct_derive::DynLayout;
     use glam::{Mat4, Vec3};
     use naga::{
         back::spv,

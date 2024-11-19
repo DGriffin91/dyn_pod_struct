@@ -1,4 +1,5 @@
 pub mod spirv;
+pub use dyn_pod_struct_derive::DynLayout;
 
 use std::{
     any::type_name,
