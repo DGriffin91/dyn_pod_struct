@@ -466,7 +466,7 @@ impl DynStruct {
     }
 }
 
-/// Adds change detection tracking on top of DynStruct.
+/// Adds granular change detection tracking on top of DynStruct.
 /// When `get_mut` or `get_mut_raw` are called the offset or path and size_of::<T>() are used to track what regions of
 /// the data have been updated.
 pub struct TrackedDynStruct {
@@ -536,10 +536,16 @@ impl TrackedDynStruct {
 
     #[inline(always)]
     pub fn get_mut_raw<T: Pod + Zeroable>(&mut self, offset: usize) -> &mut T {
+        self.mark_changed::<T>(offset);
+        self.dyn_struct.get_mut_raw(offset)
+    }
+
+    #[inline(always)]
+    /// For manually setting granular change detection. Not needed if using get_mut or get_mut_raw
+    pub fn mark_changed<T: Pod + Zeroable>(&mut self, offset: usize) {
         let bitmask_start = offset >> self.update_stride_exp;
         let bitmask_end = (offset + size_of::<T>()) >> self.update_stride_exp;
         self.update_bitmask.set(bitmask_start..bitmask_end);
-        self.dyn_struct.get_mut_raw(offset)
     }
 
     /// dyn_struct.retrieve_changes(|data_slice, start, end| {
