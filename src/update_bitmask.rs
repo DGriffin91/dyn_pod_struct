@@ -32,14 +32,14 @@ impl UpdateBitmask {
     pub fn get(&self, index: usize) -> bool {
         let bit_index = index % 16;
         let u16_index = index >> 4; // index / 16
-        (self.bits[u16_index] & (1 << bit_index)) != 0
+        (self.bits[u16_index] & (0b1000000000000000 >> bit_index)) != 0
     }
 
     #[inline]
     pub fn set_one(&mut self, index: usize) {
         let bit_index = index % 16;
         let u16_index = index >> 4; // index / 16
-        self.bits[u16_index] |= 1 << bit_index;
+        self.bits[u16_index] |= 0b1000000000000000 >> bit_index;
         self.any = true;
     }
 
