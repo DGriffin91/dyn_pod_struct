@@ -147,8 +147,8 @@ impl TrackedDynStruct {
             BaseType::DMat4 => return Some(self.get_raw::<DMat4>(ofs)),
             BaseType::DAffine2 => return Some(self.get_raw::<DAffine2>(ofs)),
             BaseType::DAffine3 => return Some(self.get_raw::<DAffine3>(ofs)),
-            // TODO Need a DynStructRef or DynFieldRef that can hold this layout and the corresponding slice of bytes
-            // Also would probably need the offsets to be relative
+            // TODO Need a DynFieldRef that can hold this field and a slice of bytes
+            // How do we return a reference to the new DynFieldRef though?
             BaseType::Struct(_arc) => todo!(),
         };
     }
@@ -190,8 +190,8 @@ impl TrackedDynStruct {
             BaseType::DMat4 => return Some(self.get_mut_raw::<DMat4>(ofs)),
             BaseType::DAffine2 => return Some(self.get_mut_raw::<DAffine2>(ofs)),
             BaseType::DAffine3 => return Some(self.get_mut_raw::<DAffine3>(ofs)),
-            // TODO Need a DynStructRef or DynFieldRef that can hold this layout and the corresponding slice of bytes
-            // Also would probably need the offsets to be relative
+            // TODO Need a DynFieldRefMut that can hold this field and a slice of bytes
+            // How do we return a reference to the new DynFieldRefMut though?
             BaseType::Struct(_arc) => todo!(),
         };
     }

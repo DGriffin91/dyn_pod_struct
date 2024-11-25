@@ -190,8 +190,6 @@ impl_base_type_info!(
 #[derive(Clone, Default, Debug, PartialEq, Hash)]
 pub struct DynField {
     /// Absolute offset into top level parent in bytes
-    // TODO should this be relative? Maybe slightly slower lookup but more modular.
-    // Can maybe then take sub slice of data and attach corresponding field.
     pub offset: u32,
     // Spare 32 bits of padding here, could cache size here. Is faster than checking size of type with .size_of()
     pub ty: BaseType,

@@ -30,12 +30,7 @@ pub fn dyn_layout_macro(input: TokenStream) -> TokenStream {
 
     let basic_types: HashSet<String> = [
         "u8", "u16", "u32", "u64", "u128", "i8", "i16", "i32", "i64", "i128", "f32", "f64",
-    ]
-    .iter()
-    .map(|s| s.to_string())
-    .collect();
-
-    let glam_types: HashSet<String> = [
+        // glam types (to avoid orphan rule issues with glam types)
         "IVec2", "IVec3", "IVec4", "UVec2", "UVec3", "UVec4", "Vec2", "Vec3", "Vec4", "Mat2",
         "Mat3", "Mat4", "Quat", "DVec2", "DVec3", "DVec4", "DMat2", "DMat3", "DMat4", "DAffine2",
         "DAffine3",
@@ -53,7 +48,7 @@ pub fn dyn_layout_macro(input: TokenStream) -> TokenStream {
         let align_expr = quote! { std::mem::align_of::<#field_type>() };
         let size_expr = quote! { std::mem::size_of::<#field_type>() };
 
-        let struct_layout = if is_basic_type(field_type, &basic_types, &glam_types) {
+        let struct_layout = if is_basic_type(field_type, &basic_types) {
             quote! { dyn_pod_struct::get_base_type::<#field_type>() }
         } else {
             quote! {
@@ -100,15 +95,15 @@ pub fn dyn_layout_macro(input: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
-fn is_basic_type(ty: &Type, basic_types: &HashSet<String>, glam_types: &HashSet<String>) -> bool {
+fn is_basic_type(ty: &Type, basic_types: &HashSet<String>) -> bool {
     if let Type::Path(TypePath { path, .. }) = ty {
         if let Some(ident) = path.get_ident() {
             let type_name = ident.to_string();
-            basic_types.contains(&type_name) || glam_types.contains(&type_name)
+            basic_types.contains(&type_name)
         } else {
             if let Some(last_segment) = path.segments.last() {
                 let type_name = last_segment.ident.to_string();
-                basic_types.contains(&type_name) || glam_types.contains(&type_name)
+                basic_types.contains(&type_name)
             } else {
                 false
             }
