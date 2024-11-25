@@ -29,7 +29,7 @@ pub fn dyn_layout_macro(input: TokenStream) -> TokenStream {
     };
 
     let basic_types: HashSet<String> = [
-        "u8", "u16", "u32", "u64", "u128", "i8", "i16", "i32", "i64", "i128", "f32", "f64", "bool",
+        "u8", "u16", "u32", "u64", "u128", "i8", "i16", "i32", "i64", "i128", "f32", "f64",
     ]
     .iter()
     .map(|s| s.to_string())
@@ -37,8 +37,8 @@ pub fn dyn_layout_macro(input: TokenStream) -> TokenStream {
 
     let glam_types: HashSet<String> = [
         "IVec2", "IVec3", "IVec4", "UVec2", "UVec3", "UVec4", "Vec2", "Vec3", "Vec4", "Mat2",
-        "Mat3", "Mat4", "Quat", "Affine2", "DVec2", "DVec3", "DVec4", "DMat2", "DMat3", "DMat4",
-        "DAffine2", "DAffine3",
+        "Mat3", "Mat4", "Quat", "DVec2", "DVec3", "DVec4", "DMat2", "DMat3", "DMat4", "DAffine2",
+        "DAffine3",
     ]
     .iter()
     .map(|s| s.to_string())

@@ -28,7 +28,8 @@ unsafe impl Pod for InstanceData {}
 fn main() {
     let size = 1_000_000;
     let layout = InstanceData::dyn_layout();
-    println!("{}", layout);
+    println!("{layout}");
+    println!("size: {size}");
 
     timeit!["Create native",
     let mut native_instances = black_box((0..size)
