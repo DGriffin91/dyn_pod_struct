@@ -2,7 +2,7 @@ use __macro_exports::RegisterForReflection;
 use bevy::reflect::*;
 use glam::*;
 
-use crate::{BaseType, DynField, TrackedDynStruct};
+use crate::{base_type::BaseType, dyn_struct::DynField, tracked_dyn_struct::TrackedDynStruct};
 
 impl Reflect for TrackedDynStruct {
     fn get_represented_type_info(&self) -> Option<&'static TypeInfo> {

@@ -1,5 +1,6 @@
 use bytemuck::Zeroable;
-use dyn_pod_struct::{diff_display, DynLayout, HasDynLayout};
+use dyn_pod_struct::dyn_layout::{diff_display, DynLayout, HasDynLayout};
+
 use glam::{Mat4, Vec3};
 use hassle_rs::compile_hlsl;
 

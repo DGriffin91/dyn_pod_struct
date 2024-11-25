@@ -2,7 +2,7 @@
 mod tests {
 
     use bytemuck::{Pod, Zeroable};
-    use dyn_pod_struct::{DynStruct, HasDynLayout};
+    use dyn_pod_struct::{dyn_layout::HasDynLayout, dyn_struct::DynStruct};
     use dyn_pod_struct_derive::DynLayout;
     use glam::{ivec4, uvec4, vec4, IVec4, UVec4, Vec4};
     use std::fmt::Debug;

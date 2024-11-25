@@ -3,7 +3,7 @@ use std::sync::Arc;
 use bytemuck::cast_slice;
 use spirq::{var::Variable, ReflectConfig};
 
-use crate::{BaseType, DynField, DynLayout};
+use crate::{dyn_struct::DynField, BaseType, DynLayout};
 
 impl DynLayout {
     /// Recursively searches for struct with provided name and generates layout.
