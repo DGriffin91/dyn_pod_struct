@@ -12,6 +12,10 @@ It both has its own form of reflection and it also partially implements `Reflect
 
 You can use `bytemuck` to safely cast the whole struct to something on the rust side (which also has reflection) or you use `&str` to access fields, or you can use `&str` to get a `DynField` which contains the offset into the buffer and then repeatedly access some field across a set of structs with the same layout, which is quite fast.
 
-With `DynStruct`'s reflection you can check if two struct layouts are `Eq`, and you can even diff the layouts.
+With `DynStruct`'s reflection you can check if two struct layouts are `Eq`, and you can diff the layouts.
 
 There's also a `TrackedDynStruct` that adds granular change detection. It tracks mutable access to regions of the `DynStruct`'s data (with a user defined stride) to allow the render pipeline to only upload changed regions to the GPU.
+
+[diff_display example:](https://github.com/DGriffin91/dyn_pod_struct/blob/main/examples/diff_display.rs) 
+
+![demo](demo.png)
