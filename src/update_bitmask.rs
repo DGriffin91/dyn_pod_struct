@@ -1,3 +1,4 @@
+#[derive(Clone, Debug, Default)]
 pub struct UpdateBitmask {
     pub bits: Vec<u16>,
     pub any: bool,

@@ -1,12 +1,14 @@
-use std::time::Instant;
+use std::hint::black_box;
+
+use bevy::{prelude::*, reflect::DynamicStruct};
 
 use bytemuck::{Pod, Zeroable};
-use dyn_pod_struct::{DynStruct, HasDynLayout};
+use dyn_pod_struct::{timeit, HasDynLayout, TrackedDynStruct};
 use dyn_pod_struct_derive::DynLayout;
 use glam::{Mat4, Vec3};
 
 #[repr(C)]
-#[derive(DynLayout, Copy, Clone, Default, Zeroable, Debug, PartialEq)]
+#[derive(DynLayout, Reflect, Copy, Clone, Default, Zeroable, Debug, PartialEq)]
 pub struct InstanceData {
     pub local_to_world: Mat4,          // model
     pub world_to_local: Mat4,          // inverse model
@@ -24,67 +26,130 @@ pub struct InstanceData {
 unsafe impl Pod for InstanceData {}
 
 fn main() {
-    let size = 30_000_000;
+    let size = 1_000_000;
     let layout = InstanceData::dyn_layout();
     println!("{}", layout);
 
-    let start = Instant::now();
-    let instances = (0..size)
+    timeit!["Create native",
+    let mut native_instances = black_box((0..size)
         .map(|i| InstanceData {
             first_index: i,
             ..Default::default()
         })
-        .collect::<Vec<_>>();
-    println!(
-        "{:.2}\tCreate native",
-        start.elapsed().as_secs_f32() * 1000.0
-    );
-    let start = Instant::now();
-    let sum: u64 = instances
-        .iter()
-        .map(|instance| instance.first_index as u64)
-        .sum();
-    println!(
-        "{:.2}\tAccess native ({sum})",
-        start.elapsed().as_secs_f32() * 1000.0
-    );
+        .collect::<Vec<_>>());
+    ];
 
-    let start = Instant::now();
-    let instances = (0..size)
+    timeit!["Create TrackedDynStructs",
+    let mut instances = black_box((0..size)
         .map(|i| {
             let data = InstanceData {
                 first_index: i,
                 ..Default::default()
             };
-            DynStruct::new(&data, &layout)
+            TrackedDynStruct::new(&data, &layout, 4, false)
         })
-        .collect::<Vec<_>>();
-    println!("{:.2}\tCreate", start.elapsed().as_secs_f32() * 1000.0);
+        .collect::<Vec<_>>());
+    ];
 
-    //std::thread::sleep(std::time::Duration::from_millis(1000));
+    timeit!["Create Bevy DynamicStructs",
+    let mut bevy_dyn_struct = black_box((0..size)
+        .map(|i| {
+            let mut st = DynamicStruct::default();
+            st.insert("local_to_world", Mat4::default());
+            st.insert("world_to_local", Mat4::default());
+            st.insert("previous_local_to_world", Mat4::default());
+            st.insert("aabb_min", Vec3::default());
+            st.insert("material_index", u32::default());
+            st.insert("aabb_max", Vec3::default());
+            st.insert("bindpose_start", u32::default());
+            st.insert("index_count", u32::default());
+            st.insert("first_index", i);
+            st.insert("vertex_count", u32::default());
+            st.insert("first_vertex", u32::default());
+            st
+        })
+        .collect::<Vec<_>>());
+    ];
 
-    let start = Instant::now();
-    let sum: u64 = instances
+    println!();
+
+    timeit!["Access Native",
+    let native_sum: u64 = black_box(native_instances
+        .iter()
+        .map(|instance| instance.first_index as u64)
+        .sum());
+    ];
+
+    timeit!["Access TrackedDynStructs",
+    let sum: u64 = black_box(instances
         .iter()
         .map(|instance| *instance.get::<u32>(&["first_index"]).unwrap() as u64)
-        .sum();
-    println!(
-        "{:.2}\tAccess dyn ({sum})",
-        start.elapsed().as_secs_f32() * 1000.0
-    );
-    //std::thread::sleep(std::time::Duration::from_millis(1000));
+        .sum());
+    assert_eq!(native_sum, sum);
+    ];
+
+    timeit!["Access TrackedDynStructs fast",
     let offset = instances[0]
+        .dyn_struct
         .layout
-        .get_path::<u32>(&["first_index"])
+        .get_path(&["first_index"])
         .unwrap()
         .offset as usize;
-    let start = Instant::now();
-    let sum: u64 = instances
+    let sum: u64 = black_box(instances
         .iter()
         .map(|instance| *instance.get_raw::<u32>(offset) as u64)
-        .sum();
-    println!(
-        "{:.2}\tAccess dyn fast ({sum})",
-        start.elapsed().as_secs_f32() * 1000.0
-    );
+        .sum());
+    assert_eq!(native_sum, sum);
+    ];
+
+    timeit!["Access bevy reflect TrackedDynStructs",
+    let sum: u64 = black_box(instances
+        .iter()
+        .map(|instance| *instance.get_field::<u32>("first_index").unwrap() as u64)
+        .sum());
+    assert_eq!(native_sum, sum);
+    ];
+
+    timeit!["Access bevy reflect native",
+    let sum: u64 = black_box(native_instances
+        .iter()
+        .map(|instance| *instance.get_field::<u32>("first_index").unwrap() as u64)
+        .sum());
+    assert_eq!(native_sum, sum);
+    ];
+
+    timeit!["Access bevy reflect bevy DynamicStruct",
+    let sum: u64 = black_box(bevy_dyn_struct
+        .iter()
+        .map(|instance| *instance.get_field::<u32>("first_index").unwrap() as u64)
+        .sum());
+    assert_eq!(native_sum, sum);
+    ];
+
+    println!();
+
+    timeit!["Modify native",
+    black_box(native_instances.iter_mut().for_each(|instance| instance.first_index = 0 ));
+    ];
+
+    timeit!["Modify TrackedDynStructs",
+    black_box(instances.iter_mut().for_each(|instance| *instance.get_mut::<u32>(&["first_index"]).unwrap() = 0 ));
+    ];
+
+    timeit!["Modify TrackedDynStructs fast",
+    let offset = instances[0].dyn_struct.layout.get_path(&["first_index"]).unwrap().offset as usize;
+    black_box(instances.iter_mut().for_each(|instance| *instance.get_mut_raw::<u32>(offset) = 0 ));
+    ];
+
+    timeit!["Modify bevy reflect TrackedDynStructs",
+    black_box(instances.iter_mut().for_each(|instance| *instance.get_field_mut::<u32>("first_index").unwrap() = 0));
+    ];
+
+    timeit!["Modify bevy reflect native",
+    black_box(native_instances.iter_mut().for_each(|instance| *instance.get_field_mut::<u32>("first_index").unwrap() = 0));
+    ];
+
+    timeit!["Modify bevy reflect DynamicStruct",
+    black_box(bevy_dyn_struct.iter_mut().for_each(|instance| *instance.get_field_mut::<u32>("first_index").unwrap() = 0));
+    ];
 }

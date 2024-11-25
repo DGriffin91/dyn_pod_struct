@@ -1,5 +1,8 @@
+pub mod bevy_reflect;
 pub mod spirv;
+use bevy::reflect::TypePath;
 pub use dyn_pod_struct_derive::DynLayout;
+pub mod timeit;
 
 use std::{
     any::type_name,
@@ -192,7 +195,10 @@ impl_base_type_info!(
 
 #[derive(Clone, Default, Debug, PartialEq, Hash)]
 pub struct DynField {
-    pub offset: u32, // In bytes
+    /// Absolute offset into top level parent in bytes
+    // TODO should this be relative? Maybe slightly slower lookup but more modular.
+    // Can maybe then take sub slice of data and attach corresponding field.
+    pub offset: u32,
     // Spare 32 bits of padding here, could cache size here. Is faster than checking size of type with .size_of()
     pub ty: BaseType,
 }
@@ -368,7 +374,7 @@ impl DynLayout {
     }
 
     #[inline(always)]
-    pub fn get_path<T: Pod + Zeroable>(&self, path: &[&str]) -> Option<&DynField> {
+    pub fn get_path(&self, path: &[&str]) -> Option<&DynField> {
         let mut layout = self;
         let mut field = None;
 
@@ -385,8 +391,6 @@ impl DynLayout {
         }
 
         if let Some(field) = field {
-            // If this shouldn't be debug, bring back DynField size, field.ty.size_of() is too slow
-            debug_assert_eq!(size_of::<T>(), field.ty.size_of());
             Some(field)
         } else {
             None
@@ -399,6 +403,7 @@ pub trait HasDynLayout {
     fn dyn_layout() -> Arc<DynLayout>;
 }
 
+#[derive(Clone, Debug, TypePath)]
 pub struct DynStruct {
     pub data: Vec<u8>,
     pub layout: Arc<DynLayout>,
@@ -436,7 +441,7 @@ impl DynStruct {
 
     #[inline(always)]
     pub fn get<T: Pod + Zeroable>(&self, path: &[&str]) -> Option<&T> {
-        if let Some(field) = self.layout.get_path::<T>(path) {
+        if let Some(field) = self.layout.get_path(path) {
             // If this shouldn't be debug, bring back DynField size, field.ty.size_of() is too slow
             debug_assert_eq!(size_of::<T>(), field.ty.size_of());
             Some(self.get_raw(field.offset as usize))
@@ -447,7 +452,7 @@ impl DynStruct {
 
     #[inline(always)]
     pub fn get_mut<T: Pod + Zeroable>(&mut self, path: &[&str]) -> Option<&mut T> {
-        if let Some(field) = self.layout.get_path::<T>(path) {
+        if let Some(field) = self.layout.get_path(path) {
             // If this shouldn't be debug, bring back DynField size, field.ty.size_of() is too slow
             debug_assert_eq!(size_of::<T>(), field.ty.size_of());
             Some(self.get_mut_raw(field.offset as usize))
@@ -470,6 +475,7 @@ impl DynStruct {
 /// Adds granular change detection tracking on top of DynStruct.
 /// When `get_mut` or `get_mut_raw` are called the offset or path and size_of::<T>() are used to track what regions of
 /// the data have been updated.
+#[derive(Clone, Debug, TypePath)]
 pub struct TrackedDynStruct {
     pub dyn_struct: DynStruct,
     pub update_bitmask: UpdateBitmask,
@@ -521,7 +527,7 @@ impl TrackedDynStruct {
 
     #[inline(always)]
     pub fn get_mut<T: Pod + Zeroable>(&mut self, path: &[&str]) -> Option<&mut T> {
-        if let Some(field) = self.dyn_struct.layout.get_path::<T>(path) {
+        if let Some(field) = self.dyn_struct.layout.get_path(path) {
             // If this shouldn't be debug, bring back DynField size, field.ty.size_of() is too slow
             debug_assert_eq!(size_of::<T>(), field.ty.size_of());
             Some(self.get_mut_raw(field.offset as usize))

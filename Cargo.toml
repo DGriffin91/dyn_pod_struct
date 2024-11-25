@@ -17,7 +17,7 @@ spirq = "1.2.2"                                        # Make optional?
 glam = { version = "0.27.0", features = ["bytemuck"] } # Make optional?
 difference = "2.0"                                     # Make optional?
 term = "0.5"                                           # Make optional?
-
+bevy = "0.14"                                          # Make optional!
 
 [profile.release-with-debug]
 inherits = "release"
