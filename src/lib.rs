@@ -1,4 +1,6 @@
+#[cfg(feature = "bevy_reflect")]
 pub mod bevy_reflect_for_tracked_dyn;
+
 pub mod spirv;
 use base_type::BaseType;
 use dyn_layout::DynLayout;

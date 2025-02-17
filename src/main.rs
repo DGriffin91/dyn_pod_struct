@@ -2,7 +2,9 @@
 
 use std::hint::black_box;
 
-use bevy::{prelude::*, reflect::DynamicStruct};
+#[cfg(feature = "bevy_reflect")]
+use bevy_reflect::{DynamicStruct, GetField, Reflect};
+
 use dyn_pod_struct::{dyn_layout::HasDynLayout, tracked_dyn_struct::TrackedDynStruct};
 
 use bytemuck::{Pod, Zeroable};
@@ -10,7 +12,8 @@ use dyn_pod_struct_derive::DynLayout;
 use glam::{Mat4, Vec3};
 
 #[repr(C)]
-#[derive(DynLayout, Reflect, Copy, Clone, Default, Zeroable, Debug, PartialEq)]
+#[derive(DynLayout, Copy, Clone, Default, Zeroable, Debug, PartialEq)]
+#[cfg_attr(feature = "bevy_reflect", derive(Reflect))]
 pub struct InstanceData {
     pub local_to_world: Mat4,          // model
     pub world_to_local: Mat4,          // inverse model
@@ -54,6 +57,7 @@ fn main() {
         .collect::<Vec<_>>());
     ];
 
+    #[cfg(feature = "bevy_reflect")]
     timeit!["Create Bevy DynamicStructs",
     let mut bevy_dyn_struct = black_box((0..size)
         .map(|i| {
@@ -105,6 +109,7 @@ fn main() {
     assert_eq!(native_sum, sum);
     ];
 
+    #[cfg(feature = "bevy_reflect")]
     timeit!["Access bevy reflect TrackedDynStructs",
     let sum: u64 = black_box(instances
         .iter()
@@ -113,6 +118,7 @@ fn main() {
     assert_eq!(native_sum, sum);
     ];
 
+    #[cfg(feature = "bevy_reflect")]
     timeit!["Access bevy reflect native",
     let sum: u64 = black_box(native_instances
         .iter()
@@ -121,6 +127,7 @@ fn main() {
     assert_eq!(native_sum, sum);
     ];
 
+    #[cfg(feature = "bevy_reflect")]
     timeit!["Access bevy reflect bevy DynamicStruct",
     let sum: u64 = black_box(bevy_dyn_struct
         .iter()
@@ -144,14 +151,17 @@ fn main() {
     black_box(instances.iter_mut().for_each(|instance| *instance.get_mut_raw::<u32>(offset) = 0 ));
     ];
 
+    #[cfg(feature = "bevy_reflect")]
     timeit!["Modify bevy reflect TrackedDynStructs",
     black_box(instances.iter_mut().for_each(|instance| *instance.get_field_mut::<u32>("first_index").unwrap() = 0));
     ];
 
+    #[cfg(feature = "bevy_reflect")]
     timeit!["Modify bevy reflect native",
     black_box(native_instances.iter_mut().for_each(|instance| *instance.get_field_mut::<u32>("first_index").unwrap() = 0));
     ];
 
+    #[cfg(feature = "bevy_reflect")]
     timeit!["Modify bevy reflect DynamicStruct",
     black_box(bevy_dyn_struct.iter_mut().for_each(|instance| *instance.get_field_mut::<u32>("first_index").unwrap() = 0));
     ];

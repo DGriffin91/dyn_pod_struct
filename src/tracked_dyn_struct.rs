@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use bevy::reflect::TypePath;
+#[cfg(feature = "bevy_reflect")]
+use bevy_reflect::TypePath;
+
 use bytemuck::{Pod, Zeroable};
 
 use crate::{dyn_layout::DynLayout, dyn_struct::DynStruct, update_bitmask::UpdateBitmask};
@@ -8,7 +10,8 @@ use crate::{dyn_layout::DynLayout, dyn_struct::DynStruct, update_bitmask::Update
 /// Adds granular change detection tracking on top of DynStruct.
 /// When `get_mut` or `get_mut_raw` are called the offset or path and size_of::<T>() are used to track what regions of
 /// the data have been updated.
-#[derive(Clone, Debug, TypePath)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "bevy_reflect", derive(TypePath))]
 pub struct TrackedDynStruct {
     pub dyn_struct: DynStruct,
     pub update_bitmask: UpdateBitmask,

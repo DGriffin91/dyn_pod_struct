@@ -1,5 +1,5 @@
 use __macro_exports::RegisterForReflection;
-use bevy::reflect::*;
+use bevy_reflect::*;
 use glam::*;
 
 use crate::{base_type::BaseType, dyn_struct::DynField, tracked_dyn_struct::TrackedDynStruct};

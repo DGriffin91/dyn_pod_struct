@@ -1,6 +1,8 @@
 use std::{any::type_name, sync::Arc};
 
-use bevy::reflect::TypePath;
+#[cfg(feature = "bevy_reflect")]
+use bevy_reflect::TypePath;
+
 use bytemuck::{bytes_of, Pod, Zeroable};
 
 use crate::{base_type::BaseType, dyn_layout::DynLayout};
@@ -13,7 +15,8 @@ pub struct DynField {
     pub ty: BaseType,
 }
 
-#[derive(Clone, Debug, TypePath)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "bevy_reflect", derive(TypePath))]
 pub struct DynStruct {
     pub data: Vec<u8>,
     pub layout: Arc<DynLayout>,
