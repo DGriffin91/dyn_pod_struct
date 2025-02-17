@@ -4,11 +4,57 @@ use glam::*;
 
 use crate::{base_type::BaseType, dyn_struct::DynField, tracked_dyn_struct::TrackedDynStruct};
 
-impl Reflect for TrackedDynStruct {
+impl PartialReflect for TrackedDynStruct {
     fn get_represented_type_info(&self) -> Option<&'static TypeInfo> {
         None
     }
 
+    fn reflect_ref(&self) -> ReflectRef {
+        ReflectRef::Struct(self)
+    }
+
+    fn reflect_mut(&mut self) -> ReflectMut {
+        ReflectMut::Struct(self)
+    }
+
+    fn reflect_owned(self: Box<Self>) -> ReflectOwned {
+        ReflectOwned::Struct(self)
+    }
+
+    fn into_partial_reflect(self: Box<Self>) -> Box<dyn PartialReflect> {
+        self
+    }
+
+    fn as_partial_reflect(&self) -> &dyn PartialReflect {
+        self
+    }
+
+    fn as_partial_reflect_mut(&mut self) -> &mut dyn PartialReflect {
+        self
+    }
+
+    fn try_into_reflect(self: Box<Self>) -> Result<Box<dyn Reflect>, Box<dyn PartialReflect>> {
+        Ok(self)
+    }
+
+    fn try_as_reflect(&self) -> Option<&dyn Reflect> {
+        Some(self)
+    }
+
+    fn try_as_reflect_mut(&mut self) -> Option<&mut dyn Reflect> {
+        Some(self)
+    }
+
+    fn try_apply(&mut self, _value: &dyn PartialReflect) -> Result<(), ApplyError> {
+        todo!()
+    }
+
+    fn clone_value(&self) -> Box<dyn PartialReflect> {
+        Box::new(self.clone())
+    }
+}
+
+impl Reflect for TrackedDynStruct {
     fn into_any(self: Box<Self>) -> Box<dyn std::any::Any> {
         self
     }
@@ -33,51 +79,31 @@ impl Reflect for TrackedDynStruct {
         self
     }
 
-    fn try_apply(&mut self, _value: &dyn Reflect) -> Result<(), ApplyError> {
-        todo!()
-    }
-
     fn set(&mut self, _value: Box<dyn Reflect>) -> Result<(), Box<dyn Reflect>> {
         todo!()
-    }
-
-    fn reflect_ref(&self) -> ReflectRef {
-        ReflectRef::Struct(self)
-    }
-
-    fn reflect_mut(&mut self) -> ReflectMut {
-        ReflectMut::Struct(self)
-    }
-
-    fn reflect_owned(self: Box<Self>) -> ReflectOwned {
-        ReflectOwned::Struct(self)
-    }
-
-    fn clone_value(&self) -> Box<dyn Reflect> {
-        Box::new(Struct::clone_dynamic(self))
     }
 }
 
 impl Struct for TrackedDynStruct {
-    fn field(&self, name: &str) -> Option<&dyn Reflect> {
+    fn field(&self, name: &str) -> Option<&dyn PartialReflect> {
         let Some(field) = self.dyn_struct.layout.get_path(&[name]) else {
             return None;
         };
         self.reflect_field(field)
     }
-    fn field_mut(&mut self, name: &str) -> Option<&mut dyn Reflect> {
+    fn field_mut(&mut self, name: &str) -> Option<&mut dyn PartialReflect> {
         let Some(field) = self.dyn_struct.layout.get_path(&[name]) else {
             return None;
         };
         self.reflect_field_mut(&field.clone()) // TODO avoid clone
     }
-    fn field_at(&self, index: usize) -> Option<&dyn Reflect> {
+    fn field_at(&self, index: usize) -> Option<&dyn PartialReflect> {
         let Some((_, field)) = self.dyn_struct.layout.fields.get(index) else {
             return None;
         };
         self.reflect_field(field)
     }
-    fn field_at_mut(&mut self, index: usize) -> Option<&mut dyn Reflect> {
+    fn field_at_mut(&mut self, index: usize) -> Option<&mut dyn PartialReflect> {
         let Some((_, field)) = self.dyn_struct.layout.fields.get(index) else {
             return None;
         };
@@ -98,11 +124,11 @@ impl Struct for TrackedDynStruct {
     }
     fn clone_dynamic(&self) -> DynamicStruct {
         let mut dynamic: DynamicStruct = ::core::default::Default::default();
-        dynamic.set_represented_type(Reflect::get_represented_type_info(self));
+        dynamic.set_represented_type(<dyn Reflect>::get_represented_type_info(self));
         for (name, field) in &self.dyn_struct.layout.fields {
             dynamic.insert_boxed(
                 name,
-                Reflect::clone_value(self.reflect_field(&field).unwrap()),
+                <dyn PartialReflect>::clone_value(self.reflect_field(&field).unwrap()),
             );
         }
         dynamic
@@ -110,7 +136,7 @@ impl Struct for TrackedDynStruct {
 }
 
 impl TrackedDynStruct {
-    pub fn reflect_field(&self, field: &DynField) -> Option<&dyn Reflect> {
+    pub fn reflect_field(&self, field: &DynField) -> Option<&dyn PartialReflect> {
         let ofs = field.offset as usize;
         match &field.ty {
             BaseType::None => return None,
@@ -153,7 +179,7 @@ impl TrackedDynStruct {
         };
     }
 
-    fn reflect_field_mut(&mut self, field: &DynField) -> Option<&mut dyn Reflect> {
+    fn reflect_field_mut(&mut self, field: &DynField) -> Option<&mut dyn PartialReflect> {
         let ofs = field.offset as usize;
         match &field.ty {
             BaseType::None => return None,
@@ -198,7 +224,7 @@ impl TrackedDynStruct {
 }
 
 impl FromReflect for TrackedDynStruct {
-    fn from_reflect(_reflect: &dyn Reflect) -> Option<Self> {
+    fn from_reflect(_reflect: &dyn PartialReflect) -> Option<Self> {
         None
     }
 }
