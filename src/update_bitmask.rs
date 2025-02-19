@@ -1,6 +1,8 @@
+use smallvec::{smallvec, SmallVec};
+
 #[derive(Clone, Debug, Default)]
 pub struct UpdateBitmask {
-    pub bits: Vec<u16>,
+    pub bits: SmallVec<u16, 8>,
     pub any: bool,
 }
 
@@ -8,7 +10,7 @@ impl UpdateBitmask {
     #[inline]
     pub fn new(size: usize, default: bool) -> Self {
         let default_val = if default { u16::MAX } else { 0 };
-        let bits = vec![default_val; (size + 15) >> 4]; // (size + 7) / 8
+        let bits = smallvec![default_val; (size + 15) >> 4]; // (size + 7) / 8
         UpdateBitmask { bits, any: default }
     }
 

@@ -93,7 +93,7 @@ dependencies = [
  "itertools",
  "rand",
  "rand_distr",
- "smallvec",
+ "smallvec 1.13.2",
 ]
 
 [[package]]
@@ -118,7 +118,7 @@ dependencies = [
  "erased-serde",
  "glam",
  "serde",
- "smallvec",
+ "smallvec 1.13.2",
 ]
 
 [[package]]
@@ -378,6 +378,7 @@ dependencies = [
  "glam",
  "hassle-rs",
  "naga",
+ "smallvec 2.0.0-alpha.10",
  "spirq",
  "term",
 ]
@@ -764,6 +765,11 @@ name = "smallvec"
 version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
+
+[[package]]
+name = "smallvec"
+version = "2.0.0-alpha.10"
+source = "git+https://github.com/servo/rust-smallvec?rev=9a23ebf1883247f91c50d429714773b46957a688#9a23ebf1883247f91c50d429714773b46957a688"
 
 [[package]]
 name = "spirq"
