@@ -16,12 +16,12 @@ smallvec = { git = "https://github.com/servo/rust-smallvec", rev = "9a23ebf18832
 
 dyn_pod_struct_derive = { path = "derive" } # Make optional?
 
-spirq = "1.2.2"                                        # Make optional?
-glam = { version = "0.29.0", features = ["bytemuck"] } # Make optional?
-difference = "2.0"                                     # Make optional?
-term = "0.5"                                           # Make optional?
-bevy_reflect = { version = "0.15", optional = true }
-bevy_math = { version = "0.15", optional = true }
+spirq = "1.2.2"                                                                # Make optional?
+glam = { version = "0.29.0", features = ["bytemuck"] }                         # Make optional?
+difference = "2.0"                                                             # Make optional?
+term = "0.5"                                                                   # Make optional?
+bevy_reflect = { version = "0.16", optional = true }
+bevy_math = { version = "0.16", optional = true, features = ["bevy_reflect"] }
 
 [profile.release-with-debug]
 inherits = "release"

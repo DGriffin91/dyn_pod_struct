@@ -126,10 +126,7 @@ impl Struct for TrackedDynStruct {
         let mut dynamic: DynamicStruct = ::core::default::Default::default();
         dynamic.set_represented_type(<dyn Reflect>::get_represented_type_info(self));
         for (name, field) in &self.dyn_struct.layout.fields {
-            dynamic.insert_boxed(
-                name,
-                <dyn PartialReflect>::clone_value(self.reflect_field(&field).unwrap()),
-            );
+            dynamic.insert_boxed(name, self.reflect_field(&field).unwrap().to_dynamic());
         }
         dynamic
     }
