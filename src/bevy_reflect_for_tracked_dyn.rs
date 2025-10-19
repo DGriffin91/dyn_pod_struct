@@ -9,11 +9,11 @@ impl PartialReflect for TrackedDynStruct {
         None
     }
 
-    fn reflect_ref(&self) -> ReflectRef {
+    fn reflect_ref(&self) -> ReflectRef<'_> {
         ReflectRef::Struct(self)
     }
 
-    fn reflect_mut(&mut self) -> ReflectMut {
+    fn reflect_mut(&mut self) -> ReflectMut<'_> {
         ReflectMut::Struct(self)
     }
 
@@ -47,10 +47,6 @@ impl PartialReflect for TrackedDynStruct {
 
     fn try_apply(&mut self, _value: &dyn PartialReflect) -> Result<(), ApplyError> {
         todo!()
-    }
-
-    fn clone_value(&self) -> Box<dyn PartialReflect> {
-        Box::new(self.clone())
     }
 }
 
@@ -119,16 +115,8 @@ impl Struct for TrackedDynStruct {
     fn field_len(&self) -> usize {
         self.dyn_struct.layout.fields.len()
     }
-    fn iter_fields(&self) -> FieldIter {
+    fn iter_fields(&self) -> FieldIter<'_> {
         FieldIter::new(self)
-    }
-    fn clone_dynamic(&self) -> DynamicStruct {
-        let mut dynamic: DynamicStruct = ::core::default::Default::default();
-        dynamic.set_represented_type(<dyn Reflect>::get_represented_type_info(self));
-        for (name, field) in &self.dyn_struct.layout.fields {
-            dynamic.insert_boxed(name, self.reflect_field(&field).unwrap().to_dynamic());
-        }
-        dynamic
     }
 }
 
