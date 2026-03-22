@@ -20,8 +20,8 @@ spirq = "1.2.2"                                                                #
 glam = { version = "0.30.0", features = ["bytemuck"] }                         # Make optional?
 difference = "2.0"                                                             # Make optional?
 term = "0.5"                                                                   # Make optional?
-bevy_reflect = { version = "0.17", optional = true }
-bevy_math = { version = "0.17", optional = true, features = ["bevy_reflect"] }
+bevy_reflect = { version = "0.18", optional = true }
+bevy_math = { version = "0.18", optional = true, features = ["bevy_reflect"] }
 
 [profile.release-with-debug]
 inherits = "release"
